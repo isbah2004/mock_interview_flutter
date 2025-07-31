@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mock_interview/core/navigation/navigation_service.dart';
 import 'package:mock_interview/core/constants/app_strings.dart';
+import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'section_header.dart';
 import 'interview_button.dart';
 
@@ -22,7 +22,7 @@ class QuickActions extends StatelessWidget {
           icon: Icons.mic,
           type: InterviewButtonType.primary,
           onPressed: () {
-            NavigationService.goToVoiceInterviewSetup();
+            Navigator.pushNamed(context, AppRoutes.voiceInterviewSetup);
           },
         ),
 
@@ -33,7 +33,7 @@ class QuickActions extends StatelessWidget {
           icon: Icons.book,
           type: InterviewButtonType.secondary,
           onPressed: () {
-            NavigationService.goToMcqInterviewSetup();
+            Navigator.pushNamed(context, AppRoutes.mcqInterviewSetup);
           },
         ),
       ],

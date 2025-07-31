@@ -130,4 +130,20 @@ class UserModel extends UserEntity {
       averageScore: averageScore ?? this.averageScore,
     );
   }
+  factory UserModel.fromEntity(UserEntity entity) {
+  return UserModel(
+    id: entity.id,
+    name: entity.name,
+    email: entity.email,
+    isEmailVerified: entity.isEmailVerified,
+    photoUrl: entity.photoUrl,
+    provider: entity.provider,
+    phone: entity.phone,
+    createdAt: entity.createdAt,
+    updatedAt: entity.updatedAt,
+    preferences: entity.preferences,
+    totalInterviews: entity.totalInterviews,
+    averageScore: entity.averageScore,
+  );
+}
 }

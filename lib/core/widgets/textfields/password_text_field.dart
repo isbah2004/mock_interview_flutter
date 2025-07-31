@@ -50,38 +50,40 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
   }
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: _obscureText,
-      builder: (context,value,child) {
-        return TextFormField(
-          enabled: widget.enabled,
-          inputFormatters: widget.inputFormatters,
-          maxLines: widget.maxLines,
-          obscureText: widget.initialObscureText,
-          onFieldSubmitted: widget.onFieldSubmitted,
-          keyboardType: TextInputType.visiblePassword,
-          validator:(p0){
-         return   Validators.validatePassword(p0 ?? '');
-          },
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          cursorColor: Theme.of(context).colorScheme.onSurface,
-          maxLength: widget.maxLength,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            prefixIcon: Icon(Icons.lock),
-            suffixIcon: IconButton(
-              icon: Icon(
-                value ? Icons.visibility_off : Icons.visibility,
+    return SizedBox(height: 55,width:370,
+      child: ValueListenableBuilder(
+        valueListenable: _obscureText,
+        builder: (context,value,child) {
+          return TextFormField(
+            enabled: widget.enabled,
+            inputFormatters: widget.inputFormatters,
+            maxLines: widget.maxLines,
+            obscureText: widget.initialObscureText,
+            onFieldSubmitted: widget.onFieldSubmitted,
+            keyboardType: TextInputType.visiblePassword,
+            validator:(p0){
+           return   Validators.validatePassword(p0 ?? '');
+            },
+            controller: widget.controller,
+            focusNode: widget.focusNode,
+            cursorColor: Theme.of(context).colorScheme.onSurface,
+            maxLength: widget.maxLength,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              prefixIcon: Icon(Icons.lock),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  value ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: () {
+                  _obscureText.value = !_obscureText.value;
+                },
               ),
-              onPressed: () {
-                _obscureText.value = !_obscureText.value;
-              },
+            
             ),
-          
-          ),
-        );
-      }
+          );
+        }
+      ),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/navigation/navigation_service.dart';
+import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
 import 'package:mock_interview/core/widgets/buttons/primary_button.dart';
@@ -39,7 +39,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
             Icons.arrow_back_ios,
             color: Theme.of(context).colorScheme.onSurface,
           ),
-          onPressed: () => NavigationService.goBack(),
+          onPressed: () => Navigator.pop(context),  
         ),
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -51,7 +51,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                 backgroundColor: Colors.green,
               ),
             );
-            NavigationService.goToLogin();
+            Navigator.pushNamed(context, AppRoutes.login);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -131,7 +131,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                               isLoading
                                   ? null
                                   : () {
-                                    NavigationService.goToLogin();
+                            Navigator.pushNamed(context, AppRoutes.login);  
                                   },
                           child: Text(
                             ' Login',

@@ -1,8 +1,8 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
 import 'package:appwrite/models.dart' as models;
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:developer';
+// import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import 'package:mock_interview/core/constants/appwrite_constants.dart';
 import '../models/user_model.dart';
@@ -11,7 +11,6 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> signInWithEmail(String email, String password);
   Future<UserModel> signUpWithEmail(String email, String password, String name);
   Future<UserModel> signInWithGoogle();
-  Future<UserModel> signInWithFacebook();
   Future<void> signOut();
   Future<UserModel?> getCurrentUser();
   Future<void> sendPasswordResetEmail(String email);
@@ -24,20 +23,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Account _account;
   final Databases _databases;
   final Storage _storage;
-  final GoogleSignIn _googleSignIn;
-  final FacebookAuth _facebookAuth;
 
   AuthRemoteDataSourceImpl({
     required Account account,
     required Databases databases,
     required Storage storage,
-    required GoogleSignIn googleSignIn,
-    required FacebookAuth facebookAuth,
   }) : _account = account,
        _databases = databases,
-       _storage = storage,
-       _googleSignIn = googleSignIn,
-       _facebookAuth = facebookAuth;
+       _storage = storage;
 
   @override
   Future<UserModel> signInWithEmail(String email, String password) async {
@@ -91,64 +84,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        throw AuthFailure('Google sign-in was cancelled');
-      }
+      // if (googleUser == null) {
+      //   throw AuthFailure('Google sign-in was cancelled');
+      // }
 
-      await googleUser.authentication;
+      // await googleUser.authentication;
 
       await _account.createOAuth2Session(
         provider: OAuthProvider.google,
-        success: 'https://your-app-callback-url/auth/google/callback',
-        failure: 'https://your-app-callback-url/auth/google/callback/failure',
-        scopes: ['profile', 'email'],
+
+        scopes: ['profile', 'email', 'openid'],
       );
 
       final user = await _account.get();
-
-      // Update user preferences with Google profile photo
-      await _account.updatePrefs(prefs: {'photoUrl': googleUser.photoUrl});
+      _storeUserInDatabase(user);
 
       return UserModel.fromAppwriteUser(user, provider: 'google');
     } on AppwriteException catch (e) {
       throw AuthFailure(e.message ?? 'Google sign-in failed');
     } catch (e) {
       throw ServerFailure('Unknown error occurred during Google sign-in');
-    }
-  }
-
-  @override
-  Future<UserModel> signInWithFacebook() async {
-    try {
-      // Trigger Facebook sign-in flow
-      final LoginResult result = await _facebookAuth.login();
-
-      if (result.status != LoginStatus.success) {
-        throw AuthFailure('Facebook sign-in was cancelled or failed');
-      }
-
-      // Get Facebook user data
-      final userData = await _facebookAuth.getUserData();
-
-      await _account.createOAuth2Session(
-        provider: OAuthProvider.facebook,
-        success: 'https://your-app-callback-url/auth/facebook/callback',
-        failure: 'https://your-app-callback-url/auth/facebook/callback/failure',
-      );
-
-      final user = await _account.get();
-
-      // Update user preferences with Facebook profile photo
-      await _account.updatePrefs(
-        prefs: {'photoUrl': userData['picture']['data']['url']},
-      );
-
-      return UserModel.fromAppwriteUser(user, provider: 'facebook');
-    } on AppwriteException catch (e) {
-      throw AuthFailure(e.message ?? 'Facebook sign-in failed');
-    } catch (e) {
-      throw ServerFailure('Unknown error occurred during Facebook sign-in');
     }
   }
 
@@ -160,13 +115,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Sign out from Google if it was the provider
       try {
-        await _googleSignIn.signOut();
+        // await _googleSignIn.signOut();
       } catch (_) {}
 
       // Sign out from Facebook if it was the provider
-      try {
-        await _facebookAuth.logOut();
-      } catch (_) {}
     } on AppwriteException catch (e) {
       throw AuthFailure(e.message ?? 'Sign out failed');
     } catch (e) {
@@ -178,6 +130,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel?> getCurrentUser() async {
     try {
       final user = await _account.get();
+      log(_account.toString());
       return UserModel.fromAppwriteUser(user);
     } on AppwriteException catch (e) {
       if (e.code == 401) {
@@ -276,6 +229,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> _storeUserInDatabase(models.User user, {String? phone}) async {
     try {
       final userData = {
+        'id': user.$id,
+
         'name': user.name,
         'email': user.email,
         'phone': phone ?? user.phone,
@@ -285,7 +240,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'averageScore': 0.0,
       };
 
-      print('Attempting to store user data: $userData');
+      log('Attempting to store user data: $userData');
 
       // Try to create new document, if it exists, update it
       try {
@@ -295,7 +250,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           documentId: user.$id,
           data: userData,
         );
-        print('✓ User data stored successfully in database');
+        log('✓ User data stored successfully in database');
       } on AppwriteException catch (e) {
         if (e.code == 409) {
           // Document already exists, update it
@@ -305,19 +260,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             documentId: user.$id,
             data: userData,
           );
-          print('✓ User data updated successfully in database');
+          log('✓ User data updated successfully in database');
         } else {
-          print('❌ AppwriteException: ${e.message} (Code: ${e.code})');
+          log('❌ AppwriteException: ${e.message} (Code: ${e.code})');
           rethrow;
         }
       }
     } catch (e) {
       // Log detailed error but don't throw as auth might still be successful
-      print('❌ Failed to store user in database: $e');
-      print('Database ID: ${AppwriteConstants.databaseId}');
-      print('Collection ID: ${AppwriteConstants.usersCollection}');
-      print('User ID: ${user.$id}');
-      print(
+      log('❌ Failed to store user in database: $e');
+      log('Database ID: ${AppwriteConstants.databaseId}');
+      log('Collection ID: ${AppwriteConstants.usersCollection}');
+      log('User ID: ${user.$id}');
+      log(
         'Make sure all required attributes are created in the users collection!',
       );
     }

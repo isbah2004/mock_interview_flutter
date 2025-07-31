@@ -16,7 +16,10 @@ class _HistoryTabState extends State<HistoryTab> {
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadHistory();
+    });
+    
   }
 
   Future<void> _loadHistory() async {
@@ -46,7 +49,6 @@ class _HistoryTabState extends State<HistoryTab> {
       print('Error loading history: $e');
       setState(() {
         isLoading = false;
-        // Keep empty list on error - could show error state instead
       });
     }
   }

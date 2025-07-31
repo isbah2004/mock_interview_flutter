@@ -13,7 +13,7 @@ class ReusableTextField extends StatelessWidget {
   final int? maxLines;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
-  final EdgeInsetsGeometry? margin, padding;
+
   final bool enabled;
   final void Function(String)? onChanged;
   const ReusableTextField({
@@ -30,18 +30,17 @@ class ReusableTextField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.inputFormatters,
-    this.margin,
+
     required this.enabled,
-    this.padding, this.onChanged,
+this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 55,
       width: 370,
-      margin: margin,
-      padding: padding,
+      
       child: TextFormField(onChanged: onChanged,
         enabled: enabled,
         inputFormatters: inputFormatters,

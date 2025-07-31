@@ -1,12 +1,14 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:get_storage/get_storage.dart';
+// import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
+import 'package:mock_interview/core/services/api_service.dart';
 import 'package:mock_interview/core/services/appwrite_service.dart';
 import 'package:mock_interview/core/services/network_service.dart';
 import 'package:mock_interview/core/services/websocket_service.dart';
+import 'package:mock_interview/features/auth/data/datasources/auth_local_data_source.dart';
 
 // Auth
 import 'package:mock_interview/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -15,15 +17,12 @@ import 'package:mock_interview/features/auth/domain/repositories/auth_repository
 import 'package:mock_interview/features/auth/domain/usecases/get_current_user.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_in_with_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_in_with_google.dart';
-import 'package:mock_interview/features/auth/domain/usecases/sign_in_with_facebook.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_up_with_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_out.dart';
 import 'package:mock_interview/features/auth/domain/usecases/send_password_reset_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/update_profile.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
-
-// Splash
-import 'package:mock_interview/features/splash/cubit/splash_cubit.dart';
+import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 
 // Home
 import 'package:mock_interview/features/home/data/datasources/home_remote_data_source.dart';
@@ -33,19 +32,19 @@ import 'package:mock_interview/features/home/domain/usecases/get_user_stats.dart
 import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
 
 // Interview
-import 'package:mock_interview/features/interview/data/datasources/interview_local_datasource.dart';
-import 'package:mock_interview/features/interview/data/datasources/interview_remote_datasource.dart';
-import 'package:mock_interview/features/interview/data/repositories/interview_repository_impl.dart';
-import 'package:mock_interview/features/interview/domain/repositories/interview_repository.dart';
-import 'package:mock_interview/features/interview/domain/usecases/start_mcq_interview.dart';
-import 'package:mock_interview/features/interview/domain/usecases/start_voice_interview.dart';
-import 'package:mock_interview/features/interview/domain/usecases/submit_mcq_answer.dart';
-import 'package:mock_interview/features/interview/domain/usecases/submit_voice_answer.dart';
-import 'package:mock_interview/features/interview/domain/usecases/end_voice_interview.dart';
-import 'package:mock_interview/features/interview/domain/usecases/get_session_stats.dart';
-import 'package:mock_interview/features/interview/domain/usecases/get_user_sessions.dart';
-import 'package:mock_interview/features/interview/domain/usecases/delete_session.dart';
-import 'package:mock_interview/features/interview/domain/usecases/save_session_to_appwrite.dart';
+import 'package:mock_interview/features/interviews/data/datasources/interview_local_datasource.dart';
+import 'package:mock_interview/features/interviews/data/datasources/interview_remote_datasource.dart';
+import 'package:mock_interview/features/interviews/data/repositories/interview_repository_impl.dart';
+import 'package:mock_interview/features/interviews/domain/repositories/interview_repository.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/start_mcq_interview.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/start_voice_interview.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/submit_mcq_answer.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/submit_voice_answer.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/end_voice_interview.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/get_session_stats.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/get_user_sessions.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/delete_session.dart';
+import 'package:mock_interview/features/interviews/domain/usecases/save_session_to_appwrite.dart';
 
 final serviceLocator = GetIt.instance;
 
@@ -57,16 +56,13 @@ Future<void> initializeDependencies() async {
     () => AppwriteService.databases,
   );
   serviceLocator.registerLazySingleton<Storage>(() => AppwriteService.storage);
-
+  serviceLocator.registerLazySingleton<GetStorage>(() => GetStorage());
   // External services
-  serviceLocator.registerLazySingleton<Dio>(() => Dio());
+  serviceLocator.registerLazySingleton<ApiService>(() => ApiService());
   serviceLocator.registerLazySingleton<WebSocketClient>(
     () => WebSocketClient(),
   );
-  serviceLocator.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
-  serviceLocator.registerLazySingleton<FacebookAuth>(
-    () => FacebookAuth.instance,
-  );
+
   serviceLocator.registerLazySingleton<InternetConnection>(
     () => InternetConnection(),
   );
@@ -80,19 +76,20 @@ Future<void> initializeDependencies() async {
       account: serviceLocator<Account>(),
       databases: serviceLocator<Databases>(),
       storage: serviceLocator<Storage>(),
-      googleSignIn: serviceLocator<GoogleSignIn>(),
-      facebookAuth: serviceLocator<FacebookAuth>(),
     ),
   );
 
+  serviceLocator.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(serviceLocator<GetStorage>()),
+  );
   // Auth Repository
   serviceLocator.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       remoteDataSource: serviceLocator<AuthRemoteDataSource>(),
       networkService: serviceLocator<NetworkService>(),
+      localDataSource: serviceLocator<AuthLocalDataSource>(),
     ),
   );
-
   // Auth Use Cases
   serviceLocator.registerLazySingleton(
     () => SignInWithEmail(serviceLocator<AuthRepository>()),
@@ -103,9 +100,7 @@ Future<void> initializeDependencies() async {
   serviceLocator.registerLazySingleton(
     () => SignInWithGoogle(serviceLocator<AuthRepository>()),
   );
-  serviceLocator.registerLazySingleton(
-    () => SignInWithFacebook(serviceLocator<AuthRepository>()),
-  );
+
   serviceLocator.registerLazySingleton(
     () => SignOut(serviceLocator<AuthRepository>()),
   );
@@ -119,6 +114,8 @@ Future<void> initializeDependencies() async {
     () => UpdateProfile(serviceLocator<AuthRepository>()),
   );
 
+  // User Cubit
+  serviceLocator.registerLazySingleton<UserCubit>(() => UserCubit());
   // Auth Bloc
   serviceLocator.registerFactory(
     () => AuthBloc(
@@ -127,13 +124,15 @@ Future<void> initializeDependencies() async {
       signOut: serviceLocator<SignOut>(),
       getCurrentUser: serviceLocator<GetCurrentUser>(),
       sendPasswordResetEmail: serviceLocator<SendPasswordResetEmail>(),
+      signInWithGoogle: serviceLocator<SignInWithGoogle>(),
+      userCubit: serviceLocator<UserCubit>(),
     ),
   );
 
   // Interview Data Sources
   serviceLocator.registerLazySingleton<InterviewRemoteDataSource>(
     () => InterviewRemoteDataSourceImpl(
-      dio: serviceLocator<Dio>(),
+      apiService: serviceLocator<ApiService>(),
       webSocketClient: serviceLocator<WebSocketClient>(),
     ),
   );
@@ -180,9 +179,6 @@ Future<void> initializeDependencies() async {
     () => SaveSessionToAppwriteUseCase(serviceLocator<InterviewRepository>()),
   );
 
-  // Splash Cubit
-  serviceLocator.registerFactory(() => SplashCubit(serviceLocator<Account>()));
-
   // Home Data Sources
   serviceLocator.registerLazySingleton<HomeRemoteDataSource>(
     () => HomeRemoteDataSourceImpl(databases: serviceLocator<Databases>()),
@@ -203,5 +199,11 @@ Future<void> initializeDependencies() async {
   // Home Bloc
   serviceLocator.registerFactory(
     () => HomeBloc(getUserStats: serviceLocator<GetUserStats>()),
+  );
+  serviceLocator.registerFactory(
+    () => McqInterviewBloc(
+      startMcqInterviewUseCase: serviceLocator<StartMcqInterviewUseCase>(),
+      submitMcqAnswerUseCase: serviceLocator<SubmitMcqAnswerUseCase>(),
+    ),
   );
 }

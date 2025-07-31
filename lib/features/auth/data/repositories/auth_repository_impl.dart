@@ -2,15 +2,18 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mock_interview/core/entities/user.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import 'package:mock_interview/core/services/network_service.dart';
+import 'package:mock_interview/features/auth/data/datasources/auth_local_data_source.dart';
 
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
+  final AuthLocalDataSource localDataSource;
   final NetworkService networkService;
 
   AuthRepositoryImpl({
+    required this.localDataSource,
     required this.remoteDataSource,
     required this.networkService,
   });
@@ -27,6 +30,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final user = await remoteDataSource.signInWithEmail(email, password);
+      
+      await localDataSource.cacheUser(user);
       return Right(user);
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));
@@ -54,6 +59,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password,
         name,
       );
+      await localDataSource.cacheUser(user);
       return Right(user);
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));
@@ -73,6 +79,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final user = await remoteDataSource.signInWithGoogle();
+      await localDataSource.cacheUser(user);
       return Right(user);
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));
@@ -83,34 +90,18 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, UserEntity>> signInWithFacebook() async {
-    // Check network connectivity first
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      final user = await remoteDataSource.signInWithFacebook();
-      return Right(user);
-    } on AuthFailure catch (e) {
-      return Left(AuthFailure(e.message));
-    } on ServerFailure catch (e) {
-      return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(NetworkFailure('Network error occurred: ${e.toString()}'));
-    }
-  }
 
   @override
   Future<Either<Failure, void>> signOut() async {
     // Check network connectivity first
     if (!await networkService.isConnected) {
+    
       return const Left(NetworkFailure('No internet connection'));
     }
 
     try {
       await remoteDataSource.signOut();
+      await localDataSource.clearCache();
       return const Right(null);
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));

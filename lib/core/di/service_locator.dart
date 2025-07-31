@@ -1,8 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:mock_interview/core/constants/appwrite_constants.dart';
-import '../../features/splash/cubit/splash_cubit.dart';
-
 final GetIt getIt = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
@@ -40,8 +38,7 @@ Future<void> setupServiceLocator() async {
     }
   });
 
-  // Register SplashCubit
-  getIt.registerFactory<SplashCubit>(() => SplashCubit(getIt<Account>()));
+  
 }
 
 // Mock Account class for testing purposes

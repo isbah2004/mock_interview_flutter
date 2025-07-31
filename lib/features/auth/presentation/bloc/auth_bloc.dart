@@ -1,8 +1,12 @@
+import 'dart:developer';
+
 import 'package:bloc/bloc.dart';
+import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/usecases/usecase.dart';
 import 'package:mock_interview/features/auth/domain/usecases/get_current_user.dart';
 import 'package:mock_interview/features/auth/domain/usecases/send_password_reset_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_in_with_email.dart';
+import 'package:mock_interview/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_up_with_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/sign_out.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_event.dart';
@@ -14,6 +18,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignOut signOut;
   final GetCurrentUser getCurrentUser;
   final SendPasswordResetEmail sendPasswordResetEmail;
+  final SignInWithGoogle signInWithGoogle;
+  final UserCubit userCubit;
 
   AuthBloc({
     required this.signInWithEmail,
@@ -21,12 +27,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.signOut,
     required this.getCurrentUser,
     required this.sendPasswordResetEmail,
+    required this.signInWithGoogle,
+    required this.userCubit,
   }) : super(const AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthSignInRequested>(_onAuthSignInRequested);
     on<AuthSignUpRequested>(_onAuthSignUpRequested);
     on<AuthSignOutRequested>(_onAuthSignOutRequested);
     on<AuthPasswordResetRequested>(_onAuthPasswordResetRequested);
+    on<AuthGoogleSignInRequested>(_onAuthGoogleSignInRequested);
+  }
+
+  Future<void> _onAuthGoogleSignInRequested(
+    AuthGoogleSignInRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final result = await signInWithGoogle.call(NoParams());
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      userCubit.loadUser(user); // <-- Load user into UserCubit
+      emit(AuthAuthenticated(user));
+    });
   }
 
   Future<void> _onAuthCheckRequested(
@@ -37,6 +58,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await getCurrentUser.call(NoParams());
     result.fold((failure) => emit(const AuthUnauthenticated()), (user) {
       if (user != null) {
+
+        log(user.email);
+        userCubit.loadUser(user); // <-- Load user into UserCubit
         emit(AuthAuthenticated(user));
       } else {
         emit(const AuthUnauthenticated());
@@ -53,6 +77,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       SignInWithEmailParams(email: event.email, password: event.password),
     );
     result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      userCubit.loadUser(user); // <-- Load user into UserCubit
       emit(AuthAuthenticated(user));
     });
   }
@@ -70,6 +95,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
     );
     result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      userCubit.loadUser(user); // <-- Load user into UserCubit
       emit(AuthAuthenticated(user));
     });
   }
@@ -81,6 +107,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     final result = await signOut(NoParams());
     result.fold((failure) => emit(AuthError(failure.message)), (_) {
+      userCubit.clearUser(); // <-- Clear user from UserCubit
       emit(const AuthUnauthenticated());
     });
   }

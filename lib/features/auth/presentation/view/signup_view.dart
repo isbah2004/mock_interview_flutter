@@ -1,9 +1,14 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/navigation/navigation_service.dart';
+import 'package:mock_interview/core/navigation/routes_name.dart';
+
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
 import 'package:mock_interview/core/widgets/buttons/primary_button.dart';
+import 'package:mock_interview/core/widgets/buttons/social_auth_button.dart';
+import 'package:mock_interview/core/widgets/dividers/or_divider.dart';
 import 'package:mock_interview/core/widgets/textfields/password_text_field.dart';
 import 'package:mock_interview/core/widgets/textfields/reusable_text_fields.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
@@ -48,8 +53,9 @@ class _SignupViewState extends State<SignupView> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
+          log('AuthState: $state');
           if (state is AuthAuthenticated) {
-            NavigationService.goToHome();
+            Navigator.pushNamed(context, AppRoutes.home); 
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -102,6 +108,7 @@ class _SignupViewState extends State<SignupView> {
                       focusNode: nameFocusNode,
                       keyboardType: TextInputType.name,
                       enabled: !isLoading,
+                      prefix: Icon(Icons.person_outline),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Name is required';
@@ -114,6 +121,8 @@ class _SignupViewState extends State<SignupView> {
                     ),
                     const SizedBox(height: 20),
                     ReusableTextField(
+                      prefix: const Icon(Icons.alternate_email_outlined),
+
                       hintText: 'Email',
                       controller: emailController,
                       focusNode: emailFocusNode,
@@ -130,21 +139,11 @@ class _SignupViewState extends State<SignupView> {
                       enabled: !isLoading,
                     ),
                     const SizedBox(height: 20),
-                    ReusableTextField(
+                    PasswordTextField(
                       hintText: 'Confirm Password',
                       controller: confirmPasswordController,
                       focusNode: confirmPasswordFocusNode,
-                      keyboardType: TextInputType.visiblePassword,
                       enabled: !isLoading,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 30),
                     PrimaryButton(
@@ -154,9 +153,18 @@ class _SignupViewState extends State<SignupView> {
                     ),
                     const SizedBox(height: 30),
                     // Social auth section commented out as requested
-                    // const ORDivider(),
-                    // const SizedBox(height: 30),
-                    // SocialAuthButton(...),
+                    const ORDivider(),
+                    const SizedBox(height: 30),
+                    // Disable social auth for now as requested
+                    SocialAuthButton(
+                      onTap: () {
+                        context.read<AuthBloc>().add(
+                          AuthGoogleSignInRequested(),
+                        );
+                      },
+                      title: 'Continue with Google',
+                      isLoading: isLoading,
+                    ),
                     const SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -175,7 +183,7 @@ class _SignupViewState extends State<SignupView> {
                               isLoading
                                   ? null
                                   : () {
-                                    NavigationService.goToLogin();
+                                    Navigator.pushNamed(context, AppRoutes.login);
                                   },
                           child: Text(
                             ' Login',

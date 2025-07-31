@@ -16,7 +16,6 @@ abstract class AuthRepository {
   });
 
   Future<Either<Failure, UserEntity>> signInWithGoogle();
-  Future<Either<Failure, UserEntity>> signInWithFacebook();
   Future<Either<Failure, void>> signOut();
   Future<Either<Failure, UserEntity?>> getCurrentUser();
   Future<Either<Failure, void>> sendPasswordResetEmail(String email);

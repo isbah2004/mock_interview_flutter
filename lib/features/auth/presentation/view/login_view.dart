@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/navigation/navigation_service.dart';
+import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
 import 'package:mock_interview/core/widgets/buttons/primary_button.dart';
+import 'package:mock_interview/core/widgets/buttons/social_auth_button.dart';
+import 'package:mock_interview/core/widgets/dividers/or_divider.dart';
 import 'package:mock_interview/core/widgets/textfields/password_text_field.dart';
 import 'package:mock_interview/core/widgets/textfields/reusable_text_fields.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
@@ -39,7 +41,7 @@ class _LoginViewState extends State<LoginView> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            NavigationService.goToHome();
+            Navigator.pushNamed(context, AppRoutes.home);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -97,7 +99,7 @@ class _LoginViewState extends State<LoginView> {
                               isLoading
                                   ? null
                                   : () {
-                                    NavigationService.navigateToResetPassword();
+                                    Navigator.pushNamed(context, AppRoutes.forgotPassword);
                                   },
                           child: Text(
                             textAlign: TextAlign.end,
@@ -122,15 +124,19 @@ class _LoginViewState extends State<LoginView> {
                     ),
                     const SizedBox(height: 30),
                     // Social auth section commented out as requested
-                    // const ORDivider(),
-                    // const SizedBox(height: 30),
+                    const ORDivider(),
+                    const SizedBox(height: 30),
                     // Disable social auth for now as requested
-                    // SocialAuthButton(
-                    //   onTap: isLoading ? null : _handleGoogleSignIn,
-                    //   title: 'Continue with Google',
-                    //   iconPath: AppImages.googleIcon,
-                    // ),
-                    // const SizedBox(height: 15),
+                    SocialAuthButton(
+                      onTap: () {
+                        context.read<AuthBloc>().add(
+                          AuthGoogleSignInRequested(),
+                        );
+                      },
+                      title: 'Continue with Google',
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(height: 15),
                     // SocialAuthButton(
                     //   onTap: isLoading ? null : _handleFacebookSignIn,
                     //   title: 'Continue with Facebook',
@@ -154,7 +160,7 @@ class _LoginViewState extends State<LoginView> {
                               isLoading
                                   ? null
                                   : () {
-                                    NavigationService.goToSignup();
+                            Navigator.pushNamed(context, AppRoutes.register);
                                   },
                           child: Text(
                             ' Signup',
