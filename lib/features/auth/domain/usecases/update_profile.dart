@@ -5,9 +5,9 @@ import '../repositories/auth_repository.dart';
 
 class UpdateProfileParams {
   final String name;
-  final String? phone;
 
-  UpdateProfileParams({required this.name, this.phone});
+
+  UpdateProfileParams({required this.name});
 }
 
 class UpdateProfile implements UseCase<void, UpdateProfileParams> {
@@ -19,7 +19,7 @@ class UpdateProfile implements UseCase<void, UpdateProfileParams> {
   Future<Either<Failure, void>> call(UpdateProfileParams params) async {
     return await authRepository.updateProfile(
       name: params.name,
-      phone: params.phone,
+     
     );
   }
 }

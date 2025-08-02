@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_service.dart';
-import '../constants/appwrite_constants.dart';
+import '../constants/app_secrets.dart';
 import 'session_manager.dart';
 
 class ProfileManager {
@@ -12,8 +12,8 @@ class ProfileManager {
   static Future<Map<String, dynamic>> getUserProfile(String userId) async {
     try {
       final userDoc = await _databases.getDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.usersCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
         documentId: userId,
       );
 
@@ -43,8 +43,8 @@ class ProfileManager {
       updateData['updatedAt'] = DateTime.now().toIso8601String();
 
       final response = await _databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.usersCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
         documentId: userId,
         data: updateData,
       );
@@ -63,14 +63,14 @@ class ProfileManager {
     try {
       // Upload file to storage
       final file = await _storage.createFile(
-        bucketId: AppwriteConstants.profileImagesBucket,
+        bucketId: AppSecrets.profileImagesBucket,
         fileId: ID.unique(),
         file: InputFile.fromPath(path: filePath),
       );
 
       // Get file URL
       final fileUrl = _storage.getFileView(
-        bucketId: AppwriteConstants.profileImagesBucket,
+        bucketId: AppSecrets.profileImagesBucket,
         fileId: file.$id,
       );
 
@@ -312,8 +312,8 @@ class ProfileManager {
   }) async {
     try {
       await _databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.usersCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
         documentId: userId,
         data: {
           'preferences': preferences,

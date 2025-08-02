@@ -1,6 +1,6 @@
-import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/enums/difficulty_level.dart';
 import 'dart:async';
 
@@ -142,7 +142,7 @@ class _MCQInterviewScreenState extends State<MCQInterviewScreen>
               SubmitMcqAnswerEvent(
                 sessionId: state.sessionId,
                 answer: '',
-                userId: ID.unique(),
+                userId: context.read<UserCubit>().currentUser!.id,
                 jobRole: widget.jobRole,
               ),
             );
@@ -481,7 +481,7 @@ class _MCQInterviewScreenState extends State<MCQInterviewScreen>
                                                   question
                                                       .options![selectedAnswer!],
                                               userId:
-                                                  ID.unique(),
+                                                  context.read<UserCubit>().currentUser!.id,
                                               jobRole: widget.jobRole,
                                             ),
                                           );

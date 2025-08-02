@@ -1,7 +1,7 @@
-import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/appwrite.dart' as appwrite;
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
-// import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/services/api_service.dart';
@@ -45,17 +45,30 @@ import 'package:mock_interview/features/interviews/domain/usecases/get_session_s
 import 'package:mock_interview/features/interviews/domain/usecases/get_user_sessions.dart';
 import 'package:mock_interview/features/interviews/domain/usecases/delete_session.dart';
 import 'package:mock_interview/features/interviews/domain/usecases/save_session_to_appwrite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initializeDependencies() async {
+  // Supabase client from the initialized instance
+  serviceLocator.registerLazySingleton<SupabaseClient>(
+    () => Supabase.instance.client,
+  );
+
   // Appwrite instances (using static getters)
-  serviceLocator.registerLazySingleton<Client>(() => AppwriteService.client);
-  serviceLocator.registerLazySingleton<Account>(() => AppwriteService.account);
-  serviceLocator.registerLazySingleton<Databases>(
+  serviceLocator.registerLazySingleton<appwrite.Client>(
+    () => AppwriteService.client,
+  );
+  serviceLocator.registerLazySingleton<appwrite.Account>(
+    () => AppwriteService.account,
+  );
+  serviceLocator.registerLazySingleton<appwrite.Databases>(
     () => AppwriteService.databases,
   );
-  serviceLocator.registerLazySingleton<Storage>(() => AppwriteService.storage);
+  serviceLocator.registerLazySingleton<appwrite.Storage>(
+    () => AppwriteService.storage,
+  );
+  serviceLocator.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance);
   serviceLocator.registerLazySingleton<GetStorage>(() => GetStorage());
   // External services
   serviceLocator.registerLazySingleton<ApiService>(() => ApiService());
@@ -73,9 +86,10 @@ Future<void> initializeDependencies() async {
   // Auth Data Sources
   serviceLocator.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(
-      account: serviceLocator<Account>(),
-      databases: serviceLocator<Databases>(),
-      storage: serviceLocator<Storage>(),
+      supabaseClient: serviceLocator<SupabaseClient>(),
+      databases: serviceLocator<appwrite.Databases>(),
+      storage: serviceLocator<appwrite.Storage>(),
+      googleSignIn: serviceLocator<GoogleSignIn>(),
     ),
   );
 
@@ -138,7 +152,9 @@ Future<void> initializeDependencies() async {
   );
 
   serviceLocator.registerLazySingleton<InterviewLocalDataSource>(
-    () => InterviewLocalDataSourceImpl(databases: serviceLocator<Databases>()),
+    () => InterviewLocalDataSourceImpl(
+      databases: serviceLocator<appwrite.Databases>(),
+    ),
   );
 
   // Interview Repository
@@ -181,7 +197,9 @@ Future<void> initializeDependencies() async {
 
   // Home Data Sources
   serviceLocator.registerLazySingleton<HomeRemoteDataSource>(
-    () => HomeRemoteDataSourceImpl(databases: serviceLocator<Databases>()),
+    () => HomeRemoteDataSourceImpl(
+      databases: serviceLocator<appwrite.Databases>(),
+    ),
   );
 
   // Home Repository

@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import '../models/session_model.dart';
-import '../../../../core/constants/appwrite_constants.dart';
+import '../../../../core/constants/app_secrets.dart';
 import '../../../../core/errors/failures.dart';
 
 abstract class SessionRemoteDataSource {
@@ -38,8 +38,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   Future<List<SessionModel>> getUserSessions(String userId) async {
     try {
       final result = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.orderDesc('\$createdAt'),
@@ -66,8 +66,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   }) async {
     try {
       final result = await _databases.createDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -96,8 +96,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   ) async {
     try {
       final result = await _databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: sessionId,
         data: data,
       );
@@ -114,8 +114,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   Future<void> deleteSession(String sessionId) async {
     try {
       await _databases.deleteDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: sessionId,
       );
     } on AppwriteException catch (e) {
@@ -132,8 +132,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   }) async {
     try {
       final result = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.equal('type', type),
@@ -161,8 +161,8 @@ class SessionRemoteDataSourceImpl implements SessionRemoteDataSource {
   }) async {
     try {
       final result = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.greaterThanEqual('\$createdAt', startDate.toIso8601String()),

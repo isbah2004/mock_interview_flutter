@@ -25,7 +25,7 @@ abstract class AuthRepository {
   });
   Future<Either<Failure, void>> updateProfile({
     required String name,
-    String? phone,
+
   });
   Future<Either<Failure, String>> uploadProfileImage(String imagePath);
   Stream<UserEntity?> get authStateChanges;

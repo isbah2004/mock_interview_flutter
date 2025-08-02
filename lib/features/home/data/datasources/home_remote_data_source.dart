@@ -1,5 +1,5 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:mock_interview/core/constants/appwrite_constants.dart';
+import 'package:mock_interview/core/constants/app_secrets.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import '../models/user_stats_model.dart';
 
@@ -19,8 +19,8 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     try {
       // Get interview sessions for this user to calculate stats
       final sessions = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [Query.equal('userId', userId)],
       );
 
@@ -66,8 +66,8 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   Future<void> updateUserStats(String userId, UserStatsModel stats) async {
     try {
       await _databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.usersCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
         documentId: userId,
         data: {
           'totalInterviews': stats.totalInterviews,

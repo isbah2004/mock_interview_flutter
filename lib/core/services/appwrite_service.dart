@@ -1,5 +1,5 @@
 import 'package:appwrite/appwrite.dart';
-import '../constants/appwrite_constants.dart';
+import '../constants/app_secrets.dart';
 
 class AppwriteService {
   static Client? _client;
@@ -10,8 +10,8 @@ class AppwriteService {
 
   static Client get client {
     _client ??= Client()
-        .setEndpoint(AppwriteConstants.endpoint)
-        .setProject(AppwriteConstants.projectId)
+        .setEndpoint(AppSecrets.endpoint)
+        .setProject(AppSecrets.projectId)
         .setSelfSigned(status: true); // Only for development
     return _client!;
   }

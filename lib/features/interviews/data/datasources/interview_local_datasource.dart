@@ -1,5 +1,5 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:mock_interview/core/constants/appwrite_constants.dart';
+import 'package:mock_interview/core/constants/app_secrets.dart';
 import 'package:mock_interview/core/enums/difficulty_level.dart';
 import 'package:mock_interview/core/enums/interview_type.dart';
 import 'package:mock_interview/core/enums/question_category.dart';
@@ -16,15 +16,14 @@ abstract class InterviewLocalDataSource {
 class InterviewLocalDataSourceImpl implements InterviewLocalDataSource {
   final Databases databases;
 
-
   InterviewLocalDataSourceImpl({required this.databases});
 
   @override
   Future<void> saveSession(InterviewSession session) async {
     try {
       await databases.createDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: session.sessionId,
         data: _sessionToMap(session),
       );
@@ -37,8 +36,8 @@ class InterviewLocalDataSourceImpl implements InterviewLocalDataSource {
   Future<List<InterviewSession>> getUserSessions(String userId) async {
     try {
       final response = await databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('user_id', userId),
           Query.orderDesc('created_at'),
@@ -55,8 +54,8 @@ class InterviewLocalDataSourceImpl implements InterviewLocalDataSource {
   Future<void> updateSession(InterviewSession session) async {
     try {
       await databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: session.sessionId,
         data: _sessionToMap(session),
       );
@@ -69,8 +68,8 @@ class InterviewLocalDataSourceImpl implements InterviewLocalDataSource {
   Future<void> deleteSession(String sessionId) async {
     try {
       await databases.deleteDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: sessionId,
       );
     } on AppwriteException catch (e) {
@@ -96,7 +95,7 @@ class InterviewLocalDataSourceImpl implements InterviewLocalDataSource {
       sessionId: data['\$id'],
       userId: data['user_id'],
       jobRole: data['job_role'],
-    
+
       category: QuestionCategory.values.firstWhere(
         (e) => e.name == data['category'],
       ),

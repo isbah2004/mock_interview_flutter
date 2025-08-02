@@ -1,15 +1,15 @@
-import 'package:appwrite/models.dart' as appwrite;
 import 'package:mock_interview/core/entities/user.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserModel extends UserEntity {
   const UserModel({
     required super.id,
     required super.name,
     required super.email,
-    required super.isEmailVerified,
+
     super.photoUrl,
     super.provider,
-    super.phone,
+
     required super.createdAt,
     super.updatedAt,
     super.preferences,
@@ -17,20 +17,22 @@ class UserModel extends UserEntity {
     super.averageScore,
   });
 
-  factory UserModel.fromAppwriteUser(appwrite.User user, {String? provider}) {
+  factory UserModel.fromAppwriteUser(User user, {String? provider}) {
     return UserModel(
-      id: user.$id,
-      name: user.name,
-      email: user.email,
-      isEmailVerified: user.emailVerification,
-      photoUrl: user.prefs.data['photoUrl'],
+      id: user.id,
+      name: user.userMetadata!['name'] ?? '',
+      email: user.email ?? '',
+
+      photoUrl: user.userMetadata!['photoUrl'],
       provider: provider ?? 'email',
-      phone: user.phone,
-      createdAt: DateTime.parse(user.$createdAt),
-      updatedAt: DateTime.parse(user.$updatedAt),
-      preferences: user.prefs.data,
-      totalInterviews: user.prefs.data['totalInterviews'] ?? 0,
-      averageScore: user.prefs.data['averageScore']?.toDouble() ?? 0.0,
+
+      createdAt: DateTime.parse(user.createdAt),
+      updatedAt: DateTime.parse(
+        user.updatedAt ?? DateTime.now().toIso8601String(),
+      ),
+      preferences: user.userMetadata!,
+      totalInterviews: user.userMetadata!['totalInterviews'] ?? 0,
+      averageScore: user.userMetadata!['averageScore']?.toDouble() ?? 0.0,
     );
   }
 
@@ -39,10 +41,10 @@ class UserModel extends UserEntity {
       id: doc['\$id'],
       name: doc['name'] ?? '',
       email: doc['email'] ?? '',
-      isEmailVerified: doc['emailVerification'] ?? false,
+
       photoUrl: doc['photoUrl'],
       provider: doc['provider'] ?? 'email',
-      phone: doc['phone'],
+
       createdAt: DateTime.parse(doc['\$createdAt']),
       updatedAt: DateTime.parse(doc['\$updatedAt']),
       preferences: doc['preferences'],
@@ -55,10 +57,9 @@ class UserModel extends UserEntity {
     return {
       'name': name,
       'email': email,
-      'emailVerification': isEmailVerified,
       'photoUrl': photoUrl,
       'provider': provider,
-      'phone': phone,
+
       'preferences': preferences,
       'totalInterviews': totalInterviews,
       'averageScore': averageScore,
@@ -70,10 +71,10 @@ class UserModel extends UserEntity {
       'id': id,
       'name': name,
       'email': email,
-      'emailVerification': isEmailVerified,
+
       'photoUrl': photoUrl,
       'provider': provider,
-      'phone': phone,
+
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'preferences': preferences,
@@ -87,10 +88,9 @@ class UserModel extends UserEntity {
       id: json['id'],
       name: json['name'],
       email: json['email'],
-      isEmailVerified: json['emailVerification'],
       photoUrl: json['photoUrl'],
       provider: json['provider'],
-      phone: json['phone'],
+
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt:
           json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
@@ -108,7 +108,6 @@ class UserModel extends UserEntity {
     bool? isEmailVerified,
     String? photoUrl,
     String? provider,
-    String? phone,
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? preferences,
@@ -119,10 +118,9 @@ class UserModel extends UserEntity {
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
-      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       photoUrl: photoUrl ?? this.photoUrl,
       provider: provider ?? this.provider,
-      phone: phone ?? this.phone,
+
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       preferences: preferences ?? this.preferences,
@@ -130,20 +128,20 @@ class UserModel extends UserEntity {
       averageScore: averageScore ?? this.averageScore,
     );
   }
+
   factory UserModel.fromEntity(UserEntity entity) {
-  return UserModel(
-    id: entity.id,
-    name: entity.name,
-    email: entity.email,
-    isEmailVerified: entity.isEmailVerified,
-    photoUrl: entity.photoUrl,
-    provider: entity.provider,
-    phone: entity.phone,
-    createdAt: entity.createdAt,
-    updatedAt: entity.updatedAt,
-    preferences: entity.preferences,
-    totalInterviews: entity.totalInterviews,
-    averageScore: entity.averageScore,
-  );
-}
+    return UserModel(
+      id: entity.id,
+      name: entity.name,
+      email: entity.email,
+      photoUrl: entity.photoUrl,
+      provider: entity.provider,
+
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      preferences: entity.preferences,
+      totalInterviews: entity.totalInterviews,
+      averageScore: entity.averageScore,
+    );
+  }
 }

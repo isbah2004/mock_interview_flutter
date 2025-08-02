@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/navigation/routes.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/theme/apptheme/light_theme.dart';
 import 'package:mock_interview/core/theme/apptheme/dark_theme.dart';
 import 'package:mock_interview/core/di/injection_container.dart';
+import 'package:mock_interview/core/constants/app_secrets.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
- 
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: AppSecrets.supabaseUrl,
+    anonKey: AppSecrets.anonkey,
+  );
+  await GoogleSignIn.instance.initialize(serverClientId: AppSecrets.googleClientId);
   await initializeDependencies();
   runApp(MyApp());
 }
@@ -46,8 +56,10 @@ class _MyAppState extends State<MyApp> {
               (context) =>
                   serviceLocator<AuthBloc>()..add(AuthCheckRequested()),
         ),
-    
-        BlocProvider<UserCubit>(create: (context)=> serviceLocator<UserCubit>()),
+
+        BlocProvider<UserCubit>(
+          create: (context) => serviceLocator<UserCubit>(),
+        ),
         BlocProvider<McqInterviewBloc>(
           create: (context) => serviceLocator<McqInterviewBloc>(),
         ),

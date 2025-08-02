@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_service.dart';
-import '../constants/appwrite_constants.dart';
+import '../constants/app_secrets.dart';
 
 class SessionManager {
   static Databases get _databases => AppwriteService.databases;
@@ -16,8 +16,8 @@ class SessionManager {
   }) async {
     try {
       final response = await _databases.createDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -46,8 +46,8 @@ class SessionManager {
   }) async {
     try {
       final response = await _databases.updateDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: sessionId,
         data: {
           'score': score,
@@ -70,8 +70,8 @@ class SessionManager {
   ) async {
     try {
       final response = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.orderDesc('\$createdAt'),
@@ -93,8 +93,8 @@ class SessionManager {
   }) async {
     try {
       final response = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.equal('type', type),
@@ -119,8 +119,8 @@ class SessionManager {
       final startDate = DateTime.now().subtract(Duration(days: days));
 
       final response = await _databases.listDocuments(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.greaterThanEqual('\$createdAt', startDate.toIso8601String()),
@@ -180,8 +180,8 @@ class SessionManager {
   static Future<void> deleteSession(String sessionId) async {
     try {
       await _databases.deleteDocument(
-        databaseId: AppwriteConstants.databaseId,
-        collectionId: AppwriteConstants.sessionsCollection,
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.sessionsCollection,
         documentId: sessionId,
       );
     } catch (e) {
