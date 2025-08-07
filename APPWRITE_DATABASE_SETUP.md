@@ -89,35 +89,7 @@
 - `status` (Key: idx_sessions_status, Type: key, Attributes: [status])
 - `type` (Key: idx_sessions_type, Type: key, Attributes: [type])
 
-### 4. Responses Collection
-
-**Collection ID**: `68777f530031b34d058d`
-
-| Attribute Key     | Type     | Size/Length | Required | Default | Array | Enum Values |
-| ----------------- | -------- | ----------- | -------- | ------- | ----- | ----------- |
-| `responseId`      | String   | 36          | ✅       | -       | ❌    | -           |
-| `sessionId`       | String   | 36          | ✅       | -       | ❌    | -           |
-| `userId`          | String   | 128         | ✅       | -       | ❌    | -           |
-| `questionId`      | Integer  | -           | ✅       | -       | ❌    | -           |
-| `questionOrder`   | Integer  | -           | ✅       | -       | ❌    | -           |
-| `userAnswer`      | String   | 1           | ✅       | -       | ❌    | A, B, C, D  |
-| `correctAnswer`   | String   | 1           | ✅       | -       | ❌    | A, B, C, D  |
-| `isCorrect`       | Boolean  | -           | ✅       | -       | ❌    | -           |
-| `score`           | Integer  | -           | ✅       | 0       | ❌    | -           |
-| `timeSpent`       | Integer  | -           | ✅       | -       | ❌    | -           |
-| `answeredAt`      | DateTime | -           | ✅       | -       | ❌    | -           |
-| `explanation`     | String   | 2000        | ✅       | -       | ❌    | -           |
-| `questionText`    | String   | 1000        | ✅       | -       | ❌    | -           |
-| `optionsSnapshot` | String   | 100         | ✅       | -       | ✅    | -           |
-
-**Indexes to Create**:
-
-- `sessionId_questionOrder` (Key: idx_responses_session_order, Type: key, Attributes: [sessionId, questionOrder])
-- `userId_answeredAt` (Key: idx_responses_user_answered, Type: key, Attributes: [userId, answeredAt])
-- `questionId` (Key: idx_responses_question, Type: key, Attributes: [questionId])
-- `isCorrect` (Key: idx_responses_correct, Type: key, Attributes: [isCorrect])
-
-### 5. Interviews Collection
+### 4. Interviews Collection
 
 **Collection ID**: `68777f3d0018267de13f`
 
@@ -155,7 +127,7 @@
 
 1. **Small Text Fields (1-50 chars)**:
 
-   - `correctAnswer`, `userAnswer`: 1 char (A, B, C, D)
+   - `correctAnswer`, `userAnswer`: 1 char (A, B, C, D) - stored in results JSON
    - `provider`: 20 chars (email, google, facebook)
    - `difficulty`: 10 chars (easy, medium, hard)
    - `category`: 20 chars (enough for longest enum)
@@ -170,14 +142,13 @@
    - `jobRoles` (array): 50 chars each (multiple job roles)
    - `tags` (array): 30 chars each (categorization tags)
    - `options` (array): 100 chars each (question options)
-   - `optionsSnapshot` (array): 100 chars each
-   - `sessionId`, `responseId`, `interviewId`: 36 chars (UUID)
+   - `sessionId`, `interviewId`: 36 chars (UUID)
    - `userId`: 128 chars (Firebase UID)
    - `configuration`: 500 chars (JSON config object)
 
 3. **Large Text Fields (500+ chars)**:
    - `photoUrl`: 500 chars (image URLs)
-   - `question`, `questionText`: 1000 chars (question content)
+   - `question`: 1000 chars (question content)
    - `explanation`: 2000 chars (detailed explanations)
    - `results`: 10000 chars (JSON array of results)
    - `analytics`: 5000 chars (JSON analytics object)
@@ -218,12 +189,6 @@ appwrite databases createIndex 687765bf0013ce99c541 68777f59001dc82cdeea --key i
 appwrite databases createIndex 687765bf0013ce99c541 68777f59001dc82cdeea --key idx_sessions_status --type key --attributes status
 appwrite databases createIndex 687765bf0013ce99c541 68777f59001dc82cdeea --key idx_sessions_type --type key --attributes type
 
-# Create indexes for Responses collection
-appwrite databases createIndex 687765bf0013ce99c541 68777f530031b34d058d --key idx_responses_session_order --type key --attributes sessionId,questionOrder
-appwrite databases createIndex 687765bf0013ce99c541 68777f530031b34d058d --key idx_responses_user_answered --type key --attributes userId,answeredAt
-appwrite databases createIndex 687765bf0013ce99c541 68777f530031b34d058d --key idx_responses_question --type key --attributes questionId
-appwrite databases createIndex 687765bf0013ce99c541 68777f530031b34d058d --key idx_responses_correct --type key --attributes isCorrect
-
 # Create indexes for Interviews collection
 appwrite databases createIndex 687765bf0013ce99c541 68777f3d0018267de13f --key idx_interviews_user_completed --type key --attributes userId,completedAt
 appwrite databases createIndex 687765bf0013ce99c541 68777f3d0018267de13f --key idx_interviews_role_cat --type key --attributes jobRole,category
@@ -244,6 +209,8 @@ appwrite databases createIndex 687765bf0013ce99c541 68777f3d0018267de13f --key i
 5. **DateTime Fields**: Appwrite automatically handles ISO 8601 format timestamps.
 
 6. **Required vs Optional**: Set based on business logic - some fields like `score` and `completedAt` are only available after completion.
+
+7. **No Responses Collection**: Individual question responses are stored in the `results` JSON field of the Interviews collection for better performance and data consistency.
 
 ## Performance Tips
 
