@@ -16,17 +16,12 @@ abstract class AuthRepository {
   });
 
   Future<Either<Failure, UserEntity>> signInWithGoogle();
+  Future<Either<Failure, UserEntity>> signInWithFacebook();
   Future<Either<Failure, void>> signOut();
   Future<Either<Failure, UserEntity?>> getCurrentUser();
   Future<Either<Failure, void>> sendPasswordResetEmail(String email);
-  Future<Either<Failure, void>> verifyEmail({
-    required String userId,
-    required String secret,
-  });
-  Future<Either<Failure, void>> updateProfile({
-    required String name,
-
-  });
+  Future<Either<Failure, void>> verifyEmail({required String otp});
+  Future<Either<Failure, void>> updateProfile({required String name});
   Future<Either<Failure, String>> uploadProfileImage(String imagePath);
   Stream<UserEntity?> get authStateChanges;
 }

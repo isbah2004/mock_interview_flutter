@@ -44,6 +44,10 @@ class AuthGoogleSignInRequested extends AuthEvent {
   const AuthGoogleSignInRequested();
 }
 
+class AuthFacebookSignInRequested extends AuthEvent {
+  const AuthFacebookSignInRequested();
+}
+
 class AuthPasswordResetRequested extends AuthEvent {
   final String email;
 

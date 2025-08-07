@@ -1,8 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_exports.dart';
+import 'package:mock_interview/firebase_options.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/navigation/routes.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
@@ -12,17 +14,16 @@ import 'package:mock_interview/core/di/injection_container.dart';
 import 'package:mock_interview/core/constants/app_secrets.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_event.dart';
-import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: AppSecrets.supabaseUrl,
-    anonKey: AppSecrets.anonkey,
+  // Initialize Google Sign-In with the Web Client ID
+  await GoogleSignIn.instance.initialize(
+    serverClientId: AppSecrets.googleClientId,
   );
-  await GoogleSignIn.instance.initialize(serverClientId: AppSecrets.googleClientId);
+
   await initializeDependencies();
   runApp(MyApp());
 }
@@ -40,8 +41,8 @@ class _MyAppState extends State<MyApp> {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.light,
       ),
     );
     super.initState();
@@ -60,8 +61,8 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<UserCubit>(
           create: (context) => serviceLocator<UserCubit>(),
         ),
-        BlocProvider<McqInterviewBloc>(
-          create: (context) => serviceLocator<McqInterviewBloc>(),
+        BlocProvider<InterviewBloc>(
+          create: (context) => serviceLocator<InterviewBloc>(),
         ),
       ],
       child: MaterialApp(

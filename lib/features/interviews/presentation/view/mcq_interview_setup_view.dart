@@ -101,11 +101,11 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                               const SizedBox(width: 36),
                             ],
                           ),
-        
+
                           SizedBox(height: 20),
                           const MCQInfoCardWidget(),
                           const SizedBox(height: 32),
-        
+
                           // Quiz Settings
                           const Text(
                             'Quiz Settings',
@@ -166,7 +166,7 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                                   height: 45,
                                   child: ReusableTextField(
                                     onChanged: cubit.updateJobRole,
-        
+
                                     hintText: '',
                                     controller: controller,
                                     keyboardType: TextInputType.text,
@@ -187,7 +187,7 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                             onChanged: cubit.updateDifficulty,
                           ),
                           const SizedBox(height: 16),
-        
+
                           // Number of Questions
                           SettingCardWidget(
                             title: 'Number of Questions',
@@ -198,7 +198,7 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                             onChanged: cubit.updateQuestions,
                           ),
                           const SizedBox(height: 16),
-        
+
                           // Category
                           SettingCardWidget(
                             title: 'Category',
@@ -209,7 +209,7 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                             onChanged: cubit.updateCategory,
                           ),
                           const SizedBox(height: 16),
-        
+
                           // Time Limit
                           SettingCardWidget(
                             title: 'Time per Question',
@@ -220,7 +220,7 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                             onChanged: cubit.updateTimeLimit,
                           ),
                           const SizedBox(height: 32),
-        
+
                           // Quiz Preview
                           Container(
                             padding: const EdgeInsets.all(20),
@@ -294,20 +294,25 @@ class _MCQInterviewSetupScreenState extends State<MCQInterviewSetupScreen> {
                             ),
                           ),
                           const SizedBox(height: 32),
-        
+
                           // Start Quiz Button
                           SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, AppRoutes.mcqInterview,arguments: McqInterviewArgs( jobRole: cubit.currentJobRole,
-                                  difficulty: cubit.getDifficultyEnum(),
-                                  category: cubit.getCategoryEnum(),
-                                  numberOfQuestions:
-                                      cubit.getNumberOfQuestions(),
-                                      timePerQuestion: cubit.getTimePerQuestion(),));
-                             
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.mcqInterview,
+                                  arguments: McqInterviewArgs(
+                                    jobRole: cubit.currentJobRole,
+                                    difficulty: cubit.getDifficultyEnum(),
+                                    category: cubit.getCategoryEnum(),
+                                    numberOfQuestions:
+                                        cubit.getNumberOfQuestions(),
+                                    timePerQuestion: cubit.getTimePerQuestion(),
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,

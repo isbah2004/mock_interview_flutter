@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+// ...existing code...
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/enums/difficulty_level.dart';
-import 'dart:async';
-
 import 'package:mock_interview/core/enums/question_category.dart';
+import 'package:mock_interview/features/interviews/presentation/cubit/mcq_counter_cubit.dart';
+import 'package:mock_interview/features/interviews/presentation/cubit/mcq_counter_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_event.dart';
 import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_state.dart';
+import 'package:mock_interview/features/interviews/presentation/widgets/question_card.dart';
+import 'package:mock_interview/features/interviews/presentation/widgets/progress_indicator.dart';
+import 'package:mock_interview/features/interviews/presentation/view/mcq_result_view.dart';
+
 class MCQInterviewScreen extends StatefulWidget {
   final String jobRole;
   final DifficultyLevel difficulty;
@@ -30,28 +36,26 @@ class MCQInterviewScreen extends StatefulWidget {
 
 class _MCQInterviewScreenState extends State<MCQInterviewScreen>
     with TickerProviderStateMixin {
-  int? selectedAnswer;
-  Timer? questionTimer;
   late AnimationController _progressController;
-  late int timeRemaining;
+  Duration timeRemaining = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    timeRemaining = widget.timePerQuestion;
+    timeRemaining = Duration(seconds: widget.timePerQuestion);
     _progressController = AnimationController(
       duration: Duration(seconds: widget.timePerQuestion),
       vsync: this,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = '6887d7e32412bb6bcbdd';
-      context.read<McqInterviewBloc>().add(
-        StartMcqInterviewEvent(
+      final userId = context.read<UserCubit>().currentUser!.id;
+      context.read<InterviewBloc>().add(
+        StartInterviewEvent(
           userId: userId,
           jobRole: widget.jobRole,
           difficultyLevel: widget.difficulty,
-          category: widget.category,
           numQuestions: widget.numberOfQuestions,
+          category: widget.category,
         ),
       );
     });
@@ -60,26 +64,17 @@ class _MCQInterviewScreenState extends State<MCQInterviewScreen>
   @override
   void dispose() {
     _progressController.dispose();
-    questionTimer?.cancel();
     super.dispose();
   }
 
   void _startQuestionTimer(VoidCallback onTimeout) {
-    timeRemaining = widget.timePerQuestion;
+    timeRemaining = Duration(seconds: widget.timePerQuestion);
     _progressController.reset();
     _progressController.forward();
-
-    questionTimer?.cancel();
-    questionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        timeRemaining--;
-      });
-
-      if (timeRemaining <= 0) {
-        timer.cancel();
-        onTimeout();
-      }
-    });
+    final cubit = context.read<McqCounterCubit>();
+    cubit.reset();
+    cubit.start();
+    // Timeout handled in BlocListener below
   }
 
   void _showExitDialog() {
@@ -133,468 +128,325 @@ class _MCQInterviewScreenState extends State<MCQInterviewScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<McqInterviewBloc, McqInterviewState>(
-      listener: (context, state) {
-        if (state is McqInterviewStarted) {
-          _startQuestionTimer(() {
-            // Auto-submit empty answer if time runs out
-            context.read<McqInterviewBloc>().add(
-              SubmitMcqAnswerEvent(
-                sessionId: state.sessionId,
-                answer: '',
-                userId: context.read<UserCubit>().currentUser!.id,
-                jobRole: widget.jobRole,
+    return BlocProvider<McqCounterCubit>(
+      create: (_) => McqCounterCubit(),
+      child: BlocConsumer<InterviewBloc, InterviewState>(
+        listener: (context, state) {
+          if (state is InterviewStarted) {
+            _startQuestionTimer(() {
+              final userId = context.read<UserCubit>().currentUser!.id;
+              if (state.currentQuestionIndex <
+                  state.interview.questions.length - 1) {
+                context.read<InterviewBloc>().add(NextQuestionEvent());
+              } else {
+                context.read<InterviewBloc>().add(
+                  SubmitInterviewEvent(
+                    sessionId: state.interview.sessionId,
+                    userId: userId,
+                    answers: state.userAnswers,
+                  ),
+                );
+              }
+            });
+          }
+          if (state is InterviewCompleted) {
+            context.read<McqCounterCubit>().stop();
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => InterviewResultScreen(
+                  evaluationResult: state.evaluationResult,
+                ),
               ),
             );
-          });
-          setState(() {
-            selectedAnswer = null;
-            timeRemaining = widget.timePerQuestion;
-          });
-        }
-        if (state is McqInterviewFeedback) {
-          questionTimer?.cancel();
-        }
-        if (state is McqInterviewCompleted) {
-          questionTimer?.cancel();
-          // Navigate to results or show dialog
-          Navigator.pushReplacementNamed(context, '/interview-results');
-        }
-      },
-      builder: (context, state) {
-        if (state is McqInterviewLoading || state is McqInterviewInitial) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (state is McqInterviewError) {
-          return Center(child: Text(state.message));
-        }
-        if (state is McqInterviewStarted) {
-          final question = state.currentQuestion;
+          }
+          if (state is InterviewError) {
+            context.read<McqCounterCubit>().stop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+        if (state is InterviewLoading) {
           return Scaffold(
-            body: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFF9FAFB), Colors.white, Color(0xFFF3F4F6)],
-                ),
-              ),
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () => _showExitDialog(),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3F4F6),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    color: Color(0xFF374151),
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                'Question ${state.currentQuestionIndex + 1} of ${state.totalQuestions}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF111827),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient:
-                                      timeRemaining <= 10
-                                          ? const LinearGradient(
-                                            colors: [
-                                              Colors.red,
-                                              Color(0xFFDC2626),
-                                            ],
-                                          )
-                                          : const LinearGradient(
-                                            colors: [
-                                              Color(0xFF374151),
-                                              Color(0xFF4B5563),
-                                            ],
-                                          ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${timeRemaining}s',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Progress Bar
-                          Container(
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE5E7EB),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: AnimatedBuilder(
-                              animation: _progressController,
-                              builder: (context, child) {
-                                return FractionallySizedBox(
-                                  alignment: Alignment.centerLeft,
-                                  widthFactor: 1 - _progressController.value,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors:
-                                            timeRemaining <= 10
-                                                ? [
-                                                  Colors.red,
-                                                  Color(0xFFDC2626),
-                                                ]
-                                                : [
-                                                  Color(0xFF374151),
-                                                  Color(0xFF4B5563),
-                                                ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          children: [
-                            // Question Card
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0xFFE5E7EB),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Color(0xFF374151),
-                                              Color(0xFF4B5563),
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.quiz,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Text(
-                                        'Question',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF6B7280),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    question.questionText,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF111827),
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            // Answer Options
-                            Expanded(
-                              child: ListView.builder(
-                                itemCount: question.options?.length ?? 0,
-                                itemBuilder: (context, index) {
-                                  final isSelected = selectedAnswer == index;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 16),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          selectedAnswer = index;
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isSelected
-                                                  ? const Color(0xFF111827)
-                                                  : Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color:
-                                                isSelected
-                                                    ? const Color(0xFF111827)
-                                                    : const Color(0xFFE5E7EB),
-                                            width: isSelected ? 2 : 1,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.05,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 24,
-                                              height: 24,
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    isSelected
-                                                        ? Colors.white
-                                                        : const Color(
-                                                          0xFFF3F4F6,
-                                                        ),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color:
-                                                      isSelected
-                                                          ? Colors.white
-                                                          : const Color(
-                                                            0xFFD1D5DB,
-                                                          ),
-                                                ),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  String.fromCharCode(
-                                                    65 + index,
-                                                  ),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w600,
-                                                    color:
-                                                        isSelected
-                                                            ? const Color(
-                                                              0xFF111827,
-                                                            )
-                                                            : const Color(
-                                                              0xFF6B7280,
-                                                            ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Text(
-                                                question.options![index],
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w500,
-                                                  color:
-                                                      isSelected
-                                                          ? Colors.white
-                                                          : const Color(
-                                                            0xFF111827,
-                                                          ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            // Next Button
-                            Container(
-                              width: double.infinity,
-                              height: 56,
-                              margin: const EdgeInsets.only(bottom: 24),
-                              child: ElevatedButton(
-                                onPressed:
-                                    selectedAnswer != null
-                                        ? () {
-                                          context.read<McqInterviewBloc>().add(
-                                            SubmitMcqAnswerEvent(
-                                              sessionId: state.sessionId,
-                                              answer:
-                                                  question
-                                                      .options![selectedAnswer!],
-                                              userId:
-                                                  context.read<UserCubit>().currentUser!.id,
-                                              jobRole: widget.jobRole,
-                                            ),
-                                          );
-                                        }
-                                        : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors:
-                                          selectedAnswer != null
-                                              ? [
-                                                Color(0xFF374151),
-                                                Color(0xFF4B5563),
-                                              ]
-                                              : [
-                                                Color(0xFF9CA3AF),
-                                                Color(0xFF6B7280),
-                                              ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      state.currentQuestionIndex <
-                                              state.totalQuestions - 1
-                                          ? 'Next Question'
-                                          : 'Finish Interview',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-        if (state is McqInterviewFeedback) {
-          // Show feedback and next/finish button
-          return Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    state.feedback,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: state.isCorrect ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).primaryColor,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (state.isLastQuestion) {
-                        context.read<McqInterviewBloc>().add(
-                          const CompleteInterviewEvent(),
-                        );
-                      } else {
-                        context.read<McqInterviewBloc>().add(
-                          const ProceedToNextQuestionEvent(),
-                        );
-                      }
-                    },
-                    child: Text(state.isLastQuestion ? 'Finish' : 'Next'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Loading Interview...',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF374151)),
                   ),
                 ],
               ),
             ),
           );
         }
-        if (state is McqInterviewCompleted) {
+
+        if (state is InterviewError) {
           return Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
             body: Center(
-              child: Text(
-                'Interview Completed!\nScore: ${state.finalScore.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${state.message}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF374151),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Go Back'),
+                  ),
+                ],
               ),
             ),
           );
         }
-        return const SizedBox.shrink();
+
+        if (state is InterviewStarted) {
+          final currentQuestion =
+              state.interview.questions[state.currentQuestionIndex];
+          final progress =
+              (state.currentQuestionIndex + 1) /
+              state.interview.questions.length;
+
+          return BlocListener<McqCounterCubit, McqCounterState>(
+            listener: (context, timerState) {
+              final seconds = timerState.seconds;
+              if (seconds >= McqCounterCubit.maxSeconds) {
+                final userId = context.read<UserCubit>().currentUser!.id;
+                if (state.currentQuestionIndex <
+                    state.interview.questions.length - 1) {
+                  context.read<InterviewBloc>().add(NextQuestionEvent());
+                } else {
+                  context.read<InterviewBloc>().add(
+                    SubmitInterviewEvent(
+                      sessionId: state.interview.sessionId,
+                      userId: userId,
+                      answers: state.userAnswers,
+                    ),
+                  );
+                }
+              } else {
+                setState(() {
+                  timeRemaining = Duration(seconds: (widget.timePerQuestion - seconds).clamp(0, widget.timePerQuestion));
+                });
+              }
+            },
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF9FAFB),
+              appBar: AppBar(
+                title: const Text(
+                  'MCQ Interview',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                backgroundColor: Theme.of(context).primaryColor,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: _showExitDialog,
+                ),
+              ),
+              body: Column(
+                children: [
+                  // Progress Indicator
+                  InterviewProgressIndicator(
+                    current: state.currentQuestionIndex + 1,
+                    total: state.interview.questions.length,
+                    progress: progress,
+                    timeRemaining: timeRemaining,
+                  ),
+
+                  // Question Card
+                  Expanded(
+                    child: QuestionCard(
+                      question: currentQuestion,
+                      selectedAnswer:
+                          state.userAnswers[state.currentQuestionIndex],
+                      onAnswerSelected: (answer) {
+                        context.read<InterviewBloc>().add(
+                          SelectAnswerEvent(
+                            questionIndex: state.currentQuestionIndex,
+                            answer: answer,
+                          ),
+                        );
+                      },
+                      questionNumber: state.currentQuestionIndex + 1,
+                      totalQuestions: state.interview.questions.length,
+                    ),
+                  ),
+
+                  // Navigation Buttons
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.shade200,
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Previous Button
+                        if (state.currentQuestionIndex > 0)
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                context.read<InterviewBloc>().add(
+                                  PreviousQuestionEvent(),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: BorderSide(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                              child: Text(
+                                'Previous',
+                                style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        if (state.currentQuestionIndex > 0)
+                          const SizedBox(width: 16),
+
+                        // Next/Submit Button
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _getNextAction(context, state),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Theme.of(context).primaryColor,
+                            ),
+                            child: Text(
+                              _isLastQuestion(state)
+                                  ? 'Submit Interview'
+                                  : 'Next Question',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF9FAFB),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.quiz_outlined,
+                  size: 64,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Preparing Interview...',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF374151)),
+                ),
+              ],
+            ),
+          ),
+        );
       },
+    ),);
+  }
+
+  VoidCallback? _getNextAction(BuildContext context, InterviewStarted state) {
+    if (_isLastQuestion(state)) {
+      return () => _submitInterview(context, state);
+    } else {
+      return () {
+        context.read<InterviewBloc>().add(NextQuestionEvent());
+      };
+    }
+  }
+
+  bool _isLastQuestion(InterviewStarted state) {
+    return state.currentQuestionIndex >= state.interview.questions.length - 1;
+  }
+
+  void _submitInterview(BuildContext context, InterviewStarted state) async {
+    // Check if current question is answered
+    final currentAnswer = state.userAnswers[state.currentQuestionIndex];
+
+    // Check if there are any unanswered questions
+    bool hasUnanswered = state.userAnswers.any((answer) => answer.isEmpty);
+
+    if (hasUnanswered && currentAnswer.isEmpty) {
+      final shouldSubmit = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Incomplete Interview'),
+              content: const Text(
+                'Some questions are not answered. Do you want to submit anyway?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Submit'),
+                ),
+              ],
+            ),
+      );
+
+      if (shouldSubmit != true) return;
+    }
+
+    final userId = context.read<UserCubit>().currentUser!.id;
+    context.read<InterviewBloc>().add(
+      SubmitInterviewEvent(
+        sessionId: state.interview.sessionId,
+        userId: userId,
+        answers: state.userAnswers,
+      ),
     );
   }
 }

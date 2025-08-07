@@ -1,13 +1,16 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:mock_interview/core/errors/failures.dart';
-import '../repositories/interview_repository.dart';
+import 'package:mock_interview/core/usecases/usecase.dart';
+import 'package:mock_interview/features/interviews/domain/repositories/interview_repository.dart';
 
-class DeleteSessionUseCase {
-  final InterviewRepository repository;
+class DeleteSession implements UseCase<void, String> {
+  final InterviewRepository interviewRepository;
 
-  DeleteSessionUseCase(this.repository);
+  DeleteSession(this.interviewRepository);
 
+  @override
   Future<Either<Failure, void>> call(String sessionId) async {
-    return await repository.deleteSession(sessionId);
+    return await interviewRepository.deleteSession(sessionId);
   }
+  
 }

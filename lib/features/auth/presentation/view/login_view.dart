@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mock_interview/core/enums/social_auth_type.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
@@ -127,22 +128,17 @@ class _LoginViewState extends State<LoginView> {
                     const ORDivider(),
                     const SizedBox(height: 30),
                     // Disable social auth for now as requested
-                    SocialAuthButton(
-                      onTap: () {
-                        context.read<AuthBloc>().add(
-                          AuthGoogleSignInRequested(),
-                        );
-                      },
-                      title: 'Continue with Google',
-                      isLoading: isLoading,
+                  
+                    SocialAuthButton(onTap: (){context.read<AuthBloc>().add(AuthGoogleSignInRequested());},
+                    isLoading: false, type: SocialAuthType.google,
                     ),
-                    const SizedBox(height: 15),
-                    // SocialAuthButton(
-                    //   onTap: isLoading ? null : _handleFacebookSignIn,
-                    //   title: 'Continue with Facebook',
-                    //   iconPath: AppImages.facebookIcon,
-                    // ),
                     const SizedBox(height: 30),
+                    SocialAuthButton(onTap: () {
+                      
+          context.read<AuthBloc>().add(const AuthFacebookSignInRequested());
+                    },
+                    isLoading: false, type: SocialAuthType.facebook,
+                    ), const SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,

@@ -2,63 +2,71 @@ import 'package:equatable/equatable.dart';
 import 'package:mock_interview/core/enums/difficulty_level.dart';
 import 'package:mock_interview/core/enums/question_category.dart';
 
-abstract class McqInterviewEvent extends Equatable {
-  const McqInterviewEvent();
+abstract class InterviewEvent extends Equatable {
+  const InterviewEvent();
 
   @override
-  List<Object?> get props => [];
+  List<Object> get props => [];
 }
 
-class StartMcqInterviewEvent extends McqInterviewEvent {
+class StartInterviewEvent extends InterviewEvent {
   final String userId;
   final String jobRole;
   final DifficultyLevel difficultyLevel;
-  final QuestionCategory category;
   final int numQuestions;
+  final QuestionCategory category;
 
-  const StartMcqInterviewEvent({
+  const StartInterviewEvent({
     required this.userId,
     required this.jobRole,
     required this.difficultyLevel,
-    required this.category,
     required this.numQuestions,
+    required this.category,
   });
 
   @override
-  List<Object?> get props => [
-    userId,
-    jobRole,
-    difficultyLevel,
-    category,
-    numQuestions,
-  ];
+  List<Object> get props => [userId, jobRole, difficultyLevel, numQuestions, category];
 }
 
-class SubmitMcqAnswerEvent extends McqInterviewEvent {
-  final String sessionId;
+class SelectAnswerEvent extends InterviewEvent {
+  final int questionIndex;
   final String answer;
-  final String userId;
-  final String jobRole;
 
-  const SubmitMcqAnswerEvent({
-    required this.sessionId,
+  const SelectAnswerEvent({
+    required this.questionIndex,
     required this.answer,
-    required this.userId,
-    required this.jobRole,
   });
 
   @override
-  List<Object?> get props => [sessionId, answer, userId, jobRole];
+  List<Object> get props => [questionIndex, answer];
 }
 
-class ProceedToNextQuestionEvent extends McqInterviewEvent {
-  const ProceedToNextQuestionEvent();
+class NextQuestionEvent extends InterviewEvent {}
+
+class PreviousQuestionEvent extends InterviewEvent {}
+
+class GoToQuestionEvent extends InterviewEvent {
+  final int questionIndex;
+
+  const GoToQuestionEvent(this.questionIndex);
+
+  @override
+  List<Object> get props => [questionIndex];
 }
 
-class CompleteInterviewEvent extends McqInterviewEvent {
-  const CompleteInterviewEvent();
+class SubmitInterviewEvent extends InterviewEvent {
+  final String sessionId;
+  final String userId;
+  final List<String> answers;
+
+  const SubmitInterviewEvent({
+    required this.sessionId,
+    required this.userId,
+    required this.answers,
+  });
+
+  @override
+  List<Object> get props => [sessionId, userId, answers];
 }
 
-class ResetInterviewEvent extends McqInterviewEvent {
-  const ResetInterviewEvent();
-}
+class ResetInterviewEvent extends InterviewEvent {}

@@ -1,15 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mock_interview/core/entities/user.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserModel extends UserEntity {
   const UserModel({
     required super.id,
     required super.name,
     required super.email,
-
     super.photoUrl,
     super.provider,
-
     required super.createdAt,
     super.updatedAt,
     super.preferences,
@@ -17,22 +15,18 @@ class UserModel extends UserEntity {
     super.averageScore,
   });
 
-  factory UserModel.fromAppwriteUser(User user, {String? provider}) {
+  factory UserModel.fromFirebaseUser(User user, {String? provider}) {
     return UserModel(
-      id: user.id,
-      name: user.userMetadata!['name'] ?? '',
+      id: user.uid,
+      name: user.displayName ?? user.email?.split('@')[0] ?? 'User',
       email: user.email ?? '',
-
-      photoUrl: user.userMetadata!['photoUrl'],
+      photoUrl: user.photoURL,
       provider: provider ?? 'email',
-
-      createdAt: DateTime.parse(user.createdAt),
-      updatedAt: DateTime.parse(
-        user.updatedAt ?? DateTime.now().toIso8601String(),
-      ),
-      preferences: user.userMetadata!,
-      totalInterviews: user.userMetadata!['totalInterviews'] ?? 0,
-      averageScore: user.userMetadata!['averageScore']?.toDouble() ?? 0.0,
+      createdAt: user.metadata.creationTime ?? DateTime.now(),
+      updatedAt: user.metadata.lastSignInTime,
+      preferences: {},
+      totalInterviews: 0,
+      averageScore: 0.0,
     );
   }
 
@@ -59,7 +53,6 @@ class UserModel extends UserEntity {
       'email': email,
       'photoUrl': photoUrl,
       'provider': provider,
-
       'preferences': preferences,
       'totalInterviews': totalInterviews,
       'averageScore': averageScore,

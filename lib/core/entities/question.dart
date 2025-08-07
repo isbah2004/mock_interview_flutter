@@ -1,62 +1,38 @@
+// lib/features/interview/domain/entities/question.dart
 import 'package:equatable/equatable.dart';
+import 'package:mock_interview/core/enums/difficulty_level.dart';
+import 'package:mock_interview/core/enums/question_category.dart';
 
 class Question extends Equatable {
-  final String? questionId;
-  final String questionText;
-  final List<String>? options; // Only for MCQ
-  final String? feedback;
-  final double? score;
-  final int? currentQuestionNumber;
-  final int? totalQuestions;
-  final String? userAnswer;
-  final DateTime? answeredAt;
+  final int id;
+  final String question;
+  final List<String> options;
+  final String correctAnswer;
+  final String explanation;
+  final DifficultyLevel difficulty;
+  final QuestionCategory category;
+  final String topic;
 
   const Question({
-    this.questionId,
-    required this.questionText,
-    this.options,
-    this.feedback,
-    this.score,
-    this.currentQuestionNumber,
-    this.totalQuestions,
-    this.userAnswer,
-    this.answeredAt,
+    required this.id,
+    required this.question,
+    required this.options,
+    required this.correctAnswer,
+    required this.explanation,
+    required this.difficulty,
+    required this.category,
+    required this.topic,
   });
 
   @override
-  List<Object?> get props => [
-    questionId,
-    questionText,
+  List<Object> get props => [
+    id,
+    question,
     options,
-    feedback,
-    score,
-    currentQuestionNumber,
-    totalQuestions,
-    userAnswer,
-    answeredAt,
+    correctAnswer,
+    explanation,
+    difficulty,
+    category,
+    topic,
   ];
-
-  Question copyWith({
-    String? questionId,
-    String? questionText,
-    List<String>? options,
-    String? feedback,
-    double? score,
-    int? currentQuestionNumber,
-    int? totalQuestions,
-    String? userAnswer,
-    DateTime? answeredAt,
-  }) {
-    return Question(
-      questionId: questionId ?? this.questionId,
-      questionText: questionText ?? this.questionText,
-      options: options ?? this.options,
-      feedback: feedback ?? this.feedback,
-      score: score ?? this.score,
-      currentQuestionNumber: currentQuestionNumber ?? this.currentQuestionNumber,
-      totalQuestions: totalQuestions ?? this.totalQuestions,
-      userAnswer: userAnswer ?? this.userAnswer,
-      answeredAt: answeredAt ?? this.answeredAt,
-    );
-  }
 }

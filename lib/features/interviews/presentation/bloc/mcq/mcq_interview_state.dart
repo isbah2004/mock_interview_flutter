@@ -1,150 +1,61 @@
-import 'package:equatable/equatable.dart';
-import '../../../../../core/entities/question.dart';
 
-abstract class McqInterviewState extends Equatable {
-  const McqInterviewState();
+import 'package:equatable/equatable.dart';
+import 'package:mock_interview/core/entities/evaluation_result.dart';
+import 'package:mock_interview/core/entities/interview.dart';
+
+
+abstract class InterviewState extends Equatable {
+  const InterviewState();
 
   @override
   List<Object?> get props => [];
 }
 
-class McqInterviewInitial extends McqInterviewState {}
+class InterviewInitial extends InterviewState {}
 
-class McqInterviewLoading extends McqInterviewState {}
+class InterviewLoading extends InterviewState {}
 
-class McqInterviewStarted extends McqInterviewState {
-  final Question currentQuestion;
-  final String sessionId;
+class InterviewStarted extends InterviewState {
+  final Interview interview;
+  final List<String> userAnswers;
   final int currentQuestionIndex;
-  final int totalQuestions;
-  final int correctAnswers;
 
-  const McqInterviewStarted({
-    required this.currentQuestion,
-    required this.sessionId,
+  const InterviewStarted({
+    required this.interview,
+    required this.userAnswers,
     required this.currentQuestionIndex,
-    required this.totalQuestions,
-    required this.correctAnswers,
   });
 
   @override
-  List<Object?> get props => [
-    currentQuestion,
-    sessionId,
-    currentQuestionIndex,
-    totalQuestions,
-    correctAnswers,
-  ];
+  List<Object> get props => [interview, userAnswers, currentQuestionIndex];
 
-  McqInterviewStarted copyWith({
-    Question? currentQuestion,
-    String? sessionId,
+  InterviewStarted copyWith({
+    Interview? interview,
+    List<String>? userAnswers,
     int? currentQuestionIndex,
-    int? totalQuestions,
-    int? correctAnswers,
   }) {
-    return McqInterviewStarted(
-      currentQuestion: currentQuestion ?? this.currentQuestion,
-      sessionId: sessionId ?? this.sessionId,
+    return InterviewStarted(
+      interview: interview ?? this.interview,
+      userAnswers: userAnswers ?? this.userAnswers,
       currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
-      totalQuestions: totalQuestions ?? this.totalQuestions,
-      correctAnswers: correctAnswers ?? this.correctAnswers,
     );
   }
 }
 
-class McqInterviewAnswerSubmitting extends McqInterviewState {
-  final Question currentQuestion;
-  final String sessionId;
-  final int currentQuestionIndex;
-  final int totalQuestions;
-  final int correctAnswers;
+class InterviewCompleted extends InterviewState {
+  final EvaluationResult evaluationResult;
 
-  const McqInterviewAnswerSubmitting({
-    required this.currentQuestion,
-    required this.sessionId,
-    required this.currentQuestionIndex,
-    required this.totalQuestions,
-    required this.correctAnswers,
-  });
+  const InterviewCompleted({required this.evaluationResult});
 
   @override
-  List<Object?> get props => [
-    currentQuestion,
-    sessionId,
-    currentQuestionIndex,
-    totalQuestions,
-    correctAnswers,
-  ];
+  List<Object> get props => [evaluationResult];
 }
 
-class McqInterviewFeedback extends McqInterviewState {
-  final Question currentQuestion;
-  final Question? nextQuestion;
-  final String sessionId;
-  final int currentQuestionIndex;
-  final int totalQuestions;
-  final int correctAnswers;
-  final String feedback;
-  final double score;
-  final bool isCorrect;
-  final bool isLastQuestion;
-
-  const McqInterviewFeedback({
-    required this.currentQuestion,
-    this.nextQuestion,
-    required this.sessionId,
-    required this.currentQuestionIndex,
-    required this.totalQuestions,
-    required this.correctAnswers,
-    required this.feedback,
-    required this.score,
-    required this.isCorrect,
-    required this.isLastQuestion,
-  });
-
-  @override
-  List<Object?> get props => [
-    currentQuestion,
-    nextQuestion,
-    sessionId,
-    currentQuestionIndex,
-    totalQuestions,
-    correctAnswers,
-    feedback,
-    score,
-    isCorrect,
-    isLastQuestion,
-  ];
-}
-
-class McqInterviewCompleted extends McqInterviewState {
-  final String sessionId;
-  final int totalQuestions;
-  final int correctAnswers;
-  final double finalScore;
-
-  const McqInterviewCompleted({
-    required this.sessionId,
-    required this.totalQuestions,
-    required this.correctAnswers,
-    required this.finalScore,
-  });
-
-  @override
-  List<Object?> get props => [
-    sessionId,
-    totalQuestions,
-    correctAnswers,
-    finalScore,
-  ];
-}
-
-class McqInterviewError extends McqInterviewState {
+class InterviewError extends InterviewState {
   final String message;
 
-  const McqInterviewError(this.message);
+  const InterviewError({required this.message});
 
   @override
-  List<Object?> get props => [message];
+  List<Object> get props => [message];
 }

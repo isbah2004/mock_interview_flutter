@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mock_interview/core/enums/social_auth_type.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
 
 import 'package:mock_interview/core/utils/constants/images.dart';
@@ -156,16 +157,19 @@ class _SignupViewState extends State<SignupView> {
                     const ORDivider(),
                     const SizedBox(height: 30),
                     // Disable social auth for now as requested
+                  
                     SocialAuthButton(
-                      onTap: () {
-                        context.read<AuthBloc>().add(
-                          AuthGoogleSignInRequested(),
-                        );
+                      onTap: (){
+                        context.read<AuthBloc>().add(AuthGoogleSignInRequested());
                       },
-                      title: 'Continue with Google',
-                      isLoading: isLoading,
+                    isLoading: false, type: SocialAuthType.google,
                     ),
                     const SizedBox(height: 30),
+                    SocialAuthButton(
+                      onTap: (){
+          context.read<AuthBloc>().add(const AuthFacebookSignInRequested());},
+                    isLoading: false, type: SocialAuthType.facebook,
+                    ), const SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,

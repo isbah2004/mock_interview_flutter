@@ -92,6 +92,26 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, UserEntity>> signInWithFacebook() async {
+    // Check network connectivity first
+    if (!await networkService.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+
+    try {
+      final user = await remoteDataSource.signInWithFacebook();
+      await localDataSource.cacheUser(user);
+      return Right(user);
+    } on AuthFailure catch (e) {
+      return Left(AuthFailure(e.message));
+    } on ServerFailure catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(NetworkFailure('Network error occurred: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> signOut() async {
     // Check network connectivity first
     if (!await networkService.isConnected) {
@@ -111,51 +131,15 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  Future<Either<Failure, UserEntity?>> checkAuthStatus() async {
-    // Check network connectivity first
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      final user = remoteDataSource.currentUserSession!.user;
-      return Right(
-        UserModel(
-          id: user.id,
-          name: user.userMetadata!['name'],
-          email: user.email!,
-          createdAt: user.createdAt as DateTime,
-          updatedAt:
-              user.updatedAt != null ? DateTime.parse(user.updatedAt!) : null,
-          photoUrl: user.userMetadata!['photoUrl'],
-          provider: user.userMetadata!['provider'],
-          preferences: user.userMetadata!,
-          totalInterviews: user.userMetadata!['totalInterviews'] ?? 0,
-          averageScore: user.userMetadata!['averageScore']?.toDouble() ?? 0.0,
-        ),
-      );
-    } on AuthFailure catch (e) {
-      return Left(AuthFailure(e.message));
-    } on ServerFailure catch (e) {
-      return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(NetworkFailure('Network error occurred: ${e.toString()}'));
-    }
-  }
-
   @override
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
-    // Check network connectivity first
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
     try {
-      final user = remoteDataSource.currentUserSession!.user;
-      return Right(
-       UserModel(id: user.id, name: user.userMetadata!['name'], email: user.email!, createdAt: user.createdAt as DateTime, updatedAt: user.updatedAt != null ? DateTime.parse(user.updatedAt!) : null, photoUrl: user.userMetadata!['photoUrl'], provider:user.userMetadata!['provider'], preferences: user.userMetadata!, totalInterviews: user.userMetadata!['totalInterviews'] ?? 0, averageScore: user.userMetadata!['averageScore']?.toDouble() ?? 0.0),
-     
-      );
+      final user = remoteDataSource.currentUser;
+      if (user == null) {
+        return const Right(null);
+      }
+
+      return Right(UserModel.fromFirebaseUser(user));
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));
     } on ServerFailure catch (e) {
@@ -184,16 +168,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> verifyEmail({
-    required String userId,
-    required String secret,
-  }) async {
+  Future<Either<Failure, void>> verifyEmail({required String otp}) async {
     if (!await networkService.isConnected) {
       return const Left(NetworkFailure('No internet connection'));
     }
 
     try {
-      await remoteDataSource.verifyEmail(userId, secret);
+      await remoteDataSource.verifyEmail(otp);
       return const Right(null);
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));
@@ -244,8 +225,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Stream<UserEntity?> get authStateChanges {
     return Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
       try {
-        final user = await remoteDataSource.currentUserSession!.user;
-        return   UserModel(id: user.id, name: user.userMetadata!['name'], email: user.email!, createdAt: user.createdAt as DateTime, updatedAt: user.updatedAt != null ? DateTime.parse(user.updatedAt!) : null, photoUrl: user.userMetadata!['photoUrl'], provider:user.userMetadata!['provider'], preferences: user.userMetadata!, totalInterviews: user.userMetadata!['totalInterviews'] ?? 0, averageScore: user.userMetadata!['averageScore']?.toDouble() ?? 0.0);
+        final user = remoteDataSource.currentUser;
+        if (user == null) return null;
+
+        return UserModel.fromFirebaseUser(user);
       } catch (e) {
         return null;
       }

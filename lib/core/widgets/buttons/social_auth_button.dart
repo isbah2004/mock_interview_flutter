@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:mock_interview/core/enums/social_auth_type.dart';
 import 'package:mock_interview/core/utils/extensions/media_query_extension.dart';
 
 class SocialAuthButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final String title;
+  final SocialAuthType type;
   final bool isLoading;
   final double? width;
+  final VoidCallback onTap;
   const SocialAuthButton({
     super.key,
-    required this.onTap,
-    required this.title,
+required this.type,
+required this. onTap,
     required this.isLoading,
     this.width,
   });
@@ -37,7 +38,7 @@ class SocialAuthButton extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 )
                 : Text(
-                  title,
+                  type == SocialAuthType.google ? 'Continue with Google' : 'Continue with Facebook',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
