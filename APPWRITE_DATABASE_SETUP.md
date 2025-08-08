@@ -41,7 +41,7 @@
 | `difficulty`      | String   | 10          | ✅       | 'medium'  | ❌    | easy, medium, hard                               |
 | `category`        | String   | 20          | ✅       | 'general' | ❌    | general, technical, behavioral, industrySpecific |
 | `topic`           | String   | 100         | ✅       | -         | ❌    | -                                                |
-| `jobRoles`        | String   | 50          | ❌       | -         | ✅    | -                                                |
+| `jobRoles`        | String   | 50          | ✅       | -         | ❌    | -                                                |
 | `tags`            | String   | 30          | ❌       | -         | ✅    | -                                                |
 | `timeRecommended` | Integer  | -           | ✅       | 30        | ❌    | -                                                |
 | `createdAt`       | DateTime | -           | ✅       | -         | ❌    | -                                                |
