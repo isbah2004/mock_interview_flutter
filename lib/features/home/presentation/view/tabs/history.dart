@@ -19,10 +19,10 @@ class _HistoryTabState extends State<HistoryTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHistory();
     });
-    
   }
 
   Future<void> _loadHistory() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
@@ -41,12 +41,14 @@ class _HistoryTabState extends State<HistoryTab> {
             return SessionManager.sessionToDisplayFormat(session);
           }).toList();
 
+      if (!mounted) return;
       setState(() {
         interviewHistory = historyList;
         isLoading = false;
       });
     } catch (e) {
       print('Error loading history: $e');
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });

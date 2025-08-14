@@ -1,6 +1,5 @@
 // lib/features/interview/domain/entities/evaluation_result.dart
 import 'package:equatable/equatable.dart';
-import 'package:mock_interview/core/entities/question_result.dart';
 
 class EvaluationResult extends Equatable {
   final String sessionId;
@@ -25,13 +24,53 @@ class EvaluationResult extends Equatable {
 
   @override
   List<Object> get props => [
-        sessionId,
-        totalQuestions,
-        results,
-        finalScore,
-        percentage,
-        passed,
-        sessionComplete,
-        completedAt,
+    sessionId,
+    totalQuestions,
+    results,
+    finalScore,
+    percentage,
+    passed,
+    sessionComplete,
+    completedAt,
+  ];
+}
+
+class QuestionResult extends Equatable {
+  final String questionId;
+  final int questionNumber;
+  final String question;
+  final String userAnswer;
+  final String correctAnswer;
+  final bool isCorrect;
+  final int score;
+  final String explanation;
+  final String topic;
+  final String difficulty;
+
+  const QuestionResult({
+    required this.questionId,
+    required this.questionNumber,
+    required this.question,
+    required this.userAnswer,
+    required this.correctAnswer,
+    required this.isCorrect,
+    required this.score,
+    required this.explanation,
+    required this.topic,
+    required this.difficulty,
+  });
+
+  @override
+  List<Object?> get props => [
+        questionId,
+        questionNumber,
+        question,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+        score,
+        explanation,
+        topic,
+        difficulty,
       ];
 }

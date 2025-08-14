@@ -24,11 +24,11 @@ import 'package:mock_interview/features/auth/domain/usecases/sign_out.dart';
 import 'package:mock_interview/features/auth/domain/usecases/send_password_reset_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/update_profile.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/check_health.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/get_active_session.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/start_interview.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/submit_answers.dart';
-import 'package:mock_interview/features/interviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/check_health.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/get_active_session.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/start_interview_usecase.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/submit_answers_usecase.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/complete_interview_usecase.dart';
 
 // Home
 import 'package:mock_interview/features/home/data/datasources/home_remote_data_source.dart';
@@ -38,12 +38,13 @@ import 'package:mock_interview/features/home/domain/usecases/get_user_stats.dart
 import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
 
 // Interview
-import 'package:mock_interview/features/interviews/data/datasources/interview_remote_datasource.dart';
-import 'package:mock_interview/features/interviews/data/repositories/interview_repository_impl.dart';
-import 'package:mock_interview/features/interviews/domain/repositories/interview_repository.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/get_session_stats.dart';
-import 'package:mock_interview/features/interviews/domain/usecases/delete_session.dart';
-import 'package:mock_interview/features/interviews/presentation/cubit/mcq_counter_cubit.dart';
+import 'package:mock_interview/features/mcqinterviews/data/datasources/mcq_interview_remote_datasource.dart';
+import 'package:mock_interview/features/mcqinterviews/data/repositories/mcq_interview_repository_impl.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/repositories/mcq_interview_repository.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/get_session_stats.dart';
+import 'package:mock_interview/features/mcqinterviews/domain/usecases/delete_session.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview_bloc.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_cubit.dart';
 
 final serviceLocator = GetIt.instance;
 
@@ -132,10 +133,8 @@ Future<void> initializeDependencies() async {
     () => UpdateProfile(serviceLocator<AuthRepository>()),
   );
 
-  // User Cubit
   serviceLocator.registerLazySingleton<UserCubit>(() => UserCubit());
 
-  // Auth Bloc
   serviceLocator.registerFactory(
     () => AuthBloc(
       signInWithEmail: serviceLocator<SignInWithEmail>(),
@@ -151,8 +150,10 @@ Future<void> initializeDependencies() async {
 
   // Interview Data Sources
   serviceLocator.registerLazySingleton<InterviewRemoteDataSource>(
-    () =>
-        InterviewRemoteDataSourceImpl(apiService: serviceLocator<ApiService>()),
+    () => InterviewRemoteDataSourceImpl(
+      apiService: serviceLocator<ApiService>(),
+      databases: serviceLocator<appwrite.Databases>(),
+    ),
   );
 
   // serviceLocator.registerLazySingleton<InterviewLocalDataSource>(
@@ -177,19 +178,14 @@ Future<void> initializeDependencies() async {
   serviceLocator.registerLazySingleton(
     () => DeleteSession(serviceLocator<InterviewRepository>()),
   );
-  serviceLocator.registerLazySingleton(
-    () => SubmitAnswers(serviceLocator<InterviewRepository>()),
-  );
+
   serviceLocator.registerLazySingleton(
     () => GetActiveSessions(serviceLocator<InterviewRepository>()),
   );
   serviceLocator.registerLazySingleton(
     () => CheckHealth(serviceLocator<InterviewRepository>()),
   );
-  serviceLocator.registerLazySingleton(
-    () => StartInterview(serviceLocator<InterviewRepository>()),
-  );
-  // Home Data Sources
+
   serviceLocator.registerLazySingleton<HomeRemoteDataSource>(
     () => HomeRemoteDataSourceImpl(
       databases: serviceLocator<appwrite.Databases>(),
@@ -212,11 +208,26 @@ Future<void> initializeDependencies() async {
   serviceLocator.registerFactory(
     () => HomeBloc(getUserStats: serviceLocator<GetUserStats>()),
   );
+
+  // Interview Use Cases
   serviceLocator.registerFactory(
-    () => InterviewBloc(
-      startInterviewUseCase: serviceLocator<StartInterview>(),
-      submitAnswersUseCase: serviceLocator<SubmitAnswers>(),
+    () => StartInterviewUseCase(serviceLocator<InterviewRepository>()),
+  );
+  serviceLocator.registerFactory(
+    () => SubmitAnswersUseCase(serviceLocator<InterviewRepository>()),
+  );
+  serviceLocator.registerFactory(
+    () => CompleteInterviewUseCase(serviceLocator<InterviewRepository>()),
+  );
+
+  serviceLocator.registerFactory(
+    () => McqInterviewBloc(
+      startInterviewUseCase: serviceLocator<StartInterviewUseCase>(),
+      submitAnswersUseCase: serviceLocator<SubmitAnswersUseCase>(),
+      completeInterviewUseCase: serviceLocator<CompleteInterviewUseCase>(),
     ),
   );
-  serviceLocator.registerFactory(() => McqCounterCubit());
+
+  // Register TimerCubit as a simple factory
+  serviceLocator.registerFactory(() => TimerCubit());
 }

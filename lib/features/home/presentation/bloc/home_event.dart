@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import '../../../../core/entities/user_stats.dart';
 
 abstract class HomeEvent extends Equatable {
   const HomeEvent();
@@ -28,10 +27,10 @@ class HomeRefreshRequested extends HomeEvent {
 
 class HomeUpdateStatsRequested extends HomeEvent {
   final String userId;
-  final UserStats stats;
+  
 
-  const HomeUpdateStatsRequested({required this.userId, required this.stats});
+  const HomeUpdateStatsRequested({required this.userId});
 
   @override
-  List<Object?> get props => [userId, stats];
+  List<Object?> get props => [userId];
 }

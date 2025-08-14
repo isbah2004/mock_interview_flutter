@@ -1,6 +1,4 @@
 import 'package:equatable/equatable.dart';
-import '../../../../core/entities/user_stats.dart';
-
 abstract class HomeState extends Equatable {
   const HomeState();
 
@@ -17,12 +15,11 @@ class HomeLoading extends HomeState {
 }
 
 class HomeLoaded extends HomeState {
-  final UserStats userStats;
+  
 
-  const HomeLoaded({required this.userStats});
+  const HomeLoaded();
 
-  @override
-  List<Object?> get props => [userStats];
+  
 }
 
 class HomeError extends HomeState {

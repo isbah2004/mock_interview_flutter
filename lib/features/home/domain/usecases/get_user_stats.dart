@@ -2,7 +2,6 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/home_repository.dart';
-import '../../../../core/entities/user_stats.dart';
 
 class GetUserStatsParams {
   final String userId;
@@ -10,13 +9,13 @@ class GetUserStatsParams {
   GetUserStatsParams({required this.userId});
 }
 
-class GetUserStats implements UseCase<UserStats, GetUserStatsParams> {
+class GetUserStats implements UseCase<void, GetUserStatsParams> {
   final HomeRepository homeRepository;
 
   GetUserStats(this.homeRepository);
 
   @override
-  Future<Either<Failure, UserStats>> call(GetUserStatsParams params) async {
+  Future<Either<Failure, void>> call(GetUserStatsParams params) async {
     return await homeRepository.getUserStats(params.userId);
   }
 }

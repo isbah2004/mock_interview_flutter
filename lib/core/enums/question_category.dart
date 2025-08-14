@@ -1,2 +1,2 @@
-/// Represents the category of interview questions.
-enum QuestionCategory { general, technical, behavioral, industrySpecific }
+// /// Represents the category of interview questions.
+// enum QuestionCategory { general, technical, behavioral, industrySpecific }

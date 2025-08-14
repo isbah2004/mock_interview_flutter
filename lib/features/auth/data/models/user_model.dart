@@ -1,30 +1,34 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' ;
 import 'package:mock_interview/core/entities/user.dart';
+import 'package:mock_interview/core/enums/auth_provider.dart';
+import 'package:mock_interview/core/extensions/auth_provider_extension.dart';
 
 class UserModel extends UserEntity {
   const UserModel({
     required super.id,
     required super.name,
     required super.email,
-    super.photoUrl,
-    super.provider,
+    required super.totalInterviews,
+    required super.averageScore,
     required super.createdAt,
-    super.updatedAt,
-    super.preferences,
-    super.totalInterviews,
-    super.averageScore,
+    required super.updatedAt,
+    super.photoUrl,
+    required super.provider,
+    required super.voiceInterviews,
+    required super.mcqInterviews,
   });
 
-  factory UserModel.fromFirebaseUser(User user, {String? provider}) {
+  factory UserModel.fromFirebaseUser(User user, {AuthType? provider}) {
     return UserModel(
+      voiceInterviews: 0,
+      mcqInterviews: 0,
       id: user.uid,
       name: user.displayName ?? user.email?.split('@')[0] ?? 'User',
       email: user.email ?? '',
       photoUrl: user.photoURL,
-      provider: provider ?? 'email',
+      provider: provider ?? AuthType.email,
       createdAt: user.metadata.creationTime ?? DateTime.now(),
-      updatedAt: user.metadata.lastSignInTime,
-      preferences: {},
+      updatedAt: user.metadata.lastSignInTime ?? DateTime.now(),
       totalInterviews: 0,
       averageScore: 0.0,
     );
@@ -35,15 +39,14 @@ class UserModel extends UserEntity {
       id: doc['\$id'],
       name: doc['name'] ?? '',
       email: doc['email'] ?? '',
-
       photoUrl: doc['photoUrl'],
-      provider: doc['provider'] ?? 'email',
-
+      provider: AuthProviderExtension.fromString(doc['provider'] ?? 'email'),
       createdAt: DateTime.parse(doc['\$createdAt']),
       updatedAt: DateTime.parse(doc['\$updatedAt']),
-      preferences: doc['preferences'],
       totalInterviews: doc['totalInterviews'] ?? 0,
       averageScore: doc['averageScore']?.toDouble() ?? 0.0,
+      voiceInterviews: doc['voiceInterviews'] ?? 0,
+      mcqInterviews: doc['mcqInterviews'] ?? 0,
     );
   }
 
@@ -52,10 +55,13 @@ class UserModel extends UserEntity {
       'name': name,
       'email': email,
       'photoUrl': photoUrl,
-      'provider': provider,
-      'preferences': preferences,
+      'provider': provider.value,
       'totalInterviews': totalInterviews,
       'averageScore': averageScore,
+      'voiceInterviews': voiceInterviews,
+      'mcqInterviews': mcqInterviews,
+      'updatedAt':updatedAt.toIso8601String(),
+
     };
   }
 
@@ -64,15 +70,14 @@ class UserModel extends UserEntity {
       'id': id,
       'name': name,
       'email': email,
-
       'photoUrl': photoUrl,
-      'provider': provider,
-
+      'provider': provider.value,
       'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'preferences': preferences,
+      'updatedAt': updatedAt.toIso8601String(),
       'totalInterviews': totalInterviews,
       'averageScore': averageScore,
+      'voiceInterviews': voiceInterviews,
+      'mcqInterviews': mcqInterviews,
     };
   }
 
@@ -82,14 +87,13 @@ class UserModel extends UserEntity {
       name: json['name'],
       email: json['email'],
       photoUrl: json['photoUrl'],
-      provider: json['provider'],
-
+      provider: AuthProviderExtension.fromString(json['provider']),
       createdAt: DateTime.parse(json['createdAt']),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      preferences: json['preferences'],
+      updatedAt: DateTime.parse(json['updatedAt']),
       totalInterviews: json['totalInterviews'] ?? 0,
       averageScore: json['averageScore']?.toDouble() ?? 0.0,
+      voiceInterviews: json['voiceInterviews'] ?? 0,
+      mcqInterviews: json['mcqInterviews'] ?? 0,
     );
   }
 
@@ -98,14 +102,14 @@ class UserModel extends UserEntity {
     String? id,
     String? name,
     String? email,
-    bool? isEmailVerified,
-    String? photoUrl,
-    String? provider,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    Map<String, dynamic>? preferences,
     int? totalInterviews,
     double? averageScore,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? photoUrl,
+    AuthType? provider,
+    int? voiceInterviews,
+    int? mcqInterviews,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -113,12 +117,12 @@ class UserModel extends UserEntity {
       email: email ?? this.email,
       photoUrl: photoUrl ?? this.photoUrl,
       provider: provider ?? this.provider,
-
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      preferences: preferences ?? this.preferences,
       totalInterviews: totalInterviews ?? this.totalInterviews,
       averageScore: averageScore ?? this.averageScore,
+      voiceInterviews: voiceInterviews ?? this.voiceInterviews,
+      mcqInterviews: mcqInterviews ?? this.mcqInterviews, 
     );
   }
 
@@ -129,12 +133,12 @@ class UserModel extends UserEntity {
       email: entity.email,
       photoUrl: entity.photoUrl,
       provider: entity.provider,
-
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      preferences: entity.preferences,
       totalInterviews: entity.totalInterviews,
       averageScore: entity.averageScore,
+      voiceInterviews: entity.voiceInterviews,
+      mcqInterviews: entity.mcqInterviews,
     );
   }
 }

@@ -39,9 +39,7 @@ class HomeTab extends StatelessWidget {
                               // Header
                               HomeHeader(
                                 userId:
-                                    homeState is HomeLoaded
-                                        ? homeState.userStats.userId
-                                        : 'User',
+                                 'User',
                               ),
                               const SizedBox(height: 32),
 
@@ -49,7 +47,7 @@ class HomeTab extends StatelessWidget {
                               if (homeState is HomeLoading)
                                 const Center(child: CircularProgressIndicator())
                               else if (homeState is HomeLoaded)
-                                StatsGrid(userStats: homeState.userStats)
+                                StatsGrid()
                               else if (homeState is HomeError)
                                 Center(
                                   child: Column(
@@ -97,10 +95,7 @@ class HomeTab extends StatelessWidget {
 
                               // Performance Insight
                               PerformanceInsight(
-                                userStats:
-                                    homeState is HomeLoaded
-                                        ? homeState.userStats
-                                        : null,
+                                
                               ),
                               const SizedBox(
                                 height: 100,
