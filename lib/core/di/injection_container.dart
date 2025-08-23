@@ -50,7 +50,6 @@ import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
 
 // Interview
 import 'package:mock_interview/features/mcqinterviews/data/datasources/mcq_interview_remote_datasource.dart';
-import 'package:mock_interview/features/mcqinterviews/data/repositories/mcq_interview_repository_impl.dart';
 import 'package:mock_interview/features/mcqinterviews/data/repositories/appwrite_mcq_interview_repository_impl.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/repositories/mcq_interview_repository.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/usecases/get_session_stats.dart';

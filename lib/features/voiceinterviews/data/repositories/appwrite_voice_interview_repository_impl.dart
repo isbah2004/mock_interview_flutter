@@ -218,4 +218,78 @@ class AppwriteVoiceInterviewRepositoryImpl implements VoiceInterviewRepository {
       return 'Below expectations. Focus on improving your communication clarity and technical knowledge.';
     }
   }
+
+  /// Store individual voice message during interview
+  Future<Either<Failure, String>> storeVoiceMessage({
+    required String sessionId,
+    required String messageType, // 'ai', 'user', 'system'
+    required String content,
+    int? sequenceNumber,
+  }) async {
+    try {
+      final message = VoiceMessageModel.fromInterviewMessage(
+        sessionId: sessionId,
+        messageType: messageType,
+        content: content,
+        timestamp: DateTime.now(),
+        sequenceNumber:
+            sequenceNumber ?? await _getNextSequenceNumber(sessionId),
+      );
+
+      final result = await databaseService.storeVoiceMessage(message);
+      return Right(result.messageId);
+    } catch (e) {
+      return Left(ServerFailure('Failed to store voice message: $e'));
+    }
+  }
+
+  /// Get the next sequence number for messages in a session
+  Future<int> _getNextSequenceNumber(String sessionId) async {
+    try {
+      // Get the highest sequence number for this session
+      final messages = await databaseService.getVoiceMessages(sessionId);
+      return messages.isEmpty
+          ? 1
+          : messages
+                  .map((m) => m.sequenceNumber)
+                  .reduce((a, b) => a > b ? a : b) +
+              1;
+    } catch (e) {
+      return 1; // Default to 1 if error
+    }
+  }
+
+  /// Store voice interview evaluation
+  Future<Either<Failure, String>> storeVoiceEvaluation({
+    required String sessionId,
+    required String feedback,
+    required double communicationScore,
+    required double contentScore,
+    required double overallScore,
+    required List<String> aiCorrectAnswers,
+    required int totalQuestions,
+  }) async {
+    try {
+      final evaluation =
+          VoiceEvaluationModel.fromVoiceInterviewEvaluationResult(
+            sessionId: sessionId,
+            feedback: feedback,
+            communicationScore: communicationScore,
+            contentScore: contentScore,
+            overallScore: overallScore,
+            aiCorrectAnswers: aiCorrectAnswers,
+            totalQuestions: totalQuestions,
+            finalScore: overallScore,
+            percentage: overallScore,
+            passed: overallScore >= 60.0,
+            sessionComplete: true,
+            completedAt: DateTime.now(),
+          );
+
+      final result = await databaseService.storeVoiceEvaluation(evaluation);
+      return Right(result.evaluationId);
+    } catch (e) {
+      return Left(ServerFailure('Failed to store voice evaluation: $e'));
+    }
+  }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/enums/social_auth_type.dart';
+import 'package:mock_interview/core/enums/auth_provider.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
@@ -240,16 +240,16 @@ class _SignupViewState extends State<SignupView>
                         const SizedBox(height: 24),
 
                         SocialAuthButton(
-                          type: SocialAuthType.google,
-                          onTap: () => _handleSocialAuth(SocialAuthType.google),
+                          type: AuthType.google,
+                          onTap: () => _handleSocialAuth(AuthType.google),
                           isLoading: isLoading,
                         ),
                         const SizedBox(height: 16),
 
                         SocialAuthButton(
-                          type: SocialAuthType.facebook,
+                          type: AuthType.facebook,
                           onTap:
-                              () => _handleSocialAuth(SocialAuthType.facebook),
+                              () => _handleSocialAuth(AuthType.facebook),
                           isLoading: isLoading,
                         ),
                         const SizedBox(height: 32),
@@ -320,10 +320,10 @@ class _SignupViewState extends State<SignupView>
     }
   }
 
-  void _handleSocialAuth(SocialAuthType type) {
-    if (type == SocialAuthType.google) {
+  void _handleSocialAuth(AuthType type) {
+    if (type == AuthType.google) {
       context.read<AuthBloc>().add(const AuthGoogleSignInRequested());
-    } else if (type == SocialAuthType.facebook) {
+    } else if (type == AuthType.facebook) {
       context.read<AuthBloc>().add(const AuthFacebookSignInRequested());
     }
   }

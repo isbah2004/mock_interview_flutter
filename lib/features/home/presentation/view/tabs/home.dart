@@ -7,10 +7,6 @@ import 'package:mock_interview/features/auth/presentation/bloc/auth_state.dart';
 import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
 import 'package:mock_interview/features/home/presentation/bloc/home_event.dart';
 import 'package:mock_interview/features/home/presentation/bloc/home_state.dart';
-import 'package:mock_interview/features/home/presentation/widgets/gradient_background.dart';
-import 'package:mock_interview/features/home/presentation/widgets/home_header.dart';
-import 'package:mock_interview/features/home/presentation/widgets/performance_insight.dart';
-import 'package:mock_interview/features/home/presentation/widgets/stats_grid.dart';
 import 'package:mock_interview/features/home/presentation/widgets/widgets.dart';
 
 class HomeTab extends StatelessWidget {
@@ -212,49 +208,49 @@ class HomeTab extends StatelessWidget {
   //   );
   // }
 
-  Widget _buildActionButton(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    final textTheme = Theme.of(context).textTheme;
+  // Widget _buildActionButton(
+  //   BuildContext context,
+  //   String title,
+  //   IconData icon,
+  //   Color color,
+  //   VoidCallback onTap,
+  // ) {
+  //   final textTheme = Theme.of(context).textTheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, color.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 32),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  //   return GestureDetector(
+  //     onTap: onTap,
+  //     child: Container(
+  //       padding: const EdgeInsets.all(20),
+  //       decoration: BoxDecoration(
+  //         gradient: LinearGradient(
+  //           begin: Alignment.topLeft,
+  //           end: Alignment.bottomRight,
+  //           colors: [color, color.withOpacity(0.8)],
+  //         ),
+  //         borderRadius: BorderRadius.circular(16),
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: color.withOpacity(0.3),
+  //             blurRadius: 12,
+  //             offset: const Offset(0, 6),
+  //           ),
+  //         ],
+  //       ),
+  //       child: Column(
+  //         children: [
+  //           Icon(icon, color: Colors.white, size: 32),
+  //           const SizedBox(height: 12),
+  //           Text(
+  //             title,
+  //             style: textTheme.titleMedium?.copyWith(
+  //               fontWeight: FontWeight.w600,
+  //               color: Colors.white,
+  //             ),
+  //             textAlign: TextAlign.center,
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

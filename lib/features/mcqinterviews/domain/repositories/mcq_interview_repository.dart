@@ -83,6 +83,14 @@ abstract class InterviewRepository {
     required int correctAnswers,
   });
 
+  Future<Either<Failure, String>> storeMcqEvaluation({
+    required String sessionId,
+    required int totalQuestions,
+    required int correctAnswers,
+    required double finalScore,
+    int? timeTaken,
+  });
+
   Future<Either<Failure, Map<String, dynamic>>> getSessionStats(
     String sessionId,
   );

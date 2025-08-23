@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mock_interview/core/enums/social_auth_type.dart';
+import 'package:mock_interview/core/enums/auth_provider.dart';
 import 'package:mock_interview/core/utils/extensions/media_query_extension.dart';
 
 class SocialAuthButton extends StatelessWidget {
-  final SocialAuthType type;
+  final AuthType type;
   final bool isLoading;
   final double? width;
   final VoidCallback onTap;
@@ -56,7 +56,7 @@ class SocialAuthButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      type == SocialAuthType.google 
+                      type == AuthType.google 
                           ? Icons.g_mobiledata 
                           : Icons.facebook,
                       color: Theme.of(context).colorScheme.primary,
@@ -64,7 +64,7 @@ class SocialAuthButton extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      type == SocialAuthType.google 
+                      type == AuthType.google 
                           ? 'Continue with Google' 
                           : 'Continue with Facebook',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(

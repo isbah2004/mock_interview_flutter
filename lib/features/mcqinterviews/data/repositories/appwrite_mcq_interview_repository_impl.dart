@@ -255,6 +255,36 @@ class AppwriteMcqInterviewRepositoryImpl implements InterviewRepository {
   }
 
   @override
+  Future<Either<Failure, String>> storeMcqEvaluation({
+    required String sessionId,
+    required int totalQuestions,
+    required int correctAnswers,
+    required double finalScore,
+    int? timeTaken,
+  }) async {
+    if (!await networkService.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+
+    try {
+      final evaluation = McqEvaluationModel.create(
+        sessionId: sessionId,
+        totalQuestions: totalQuestions,
+        correctAnswers: correctAnswers,
+        finalScore: finalScore,
+        timeTaken: timeTaken,
+      );
+
+      final result = await databaseService.storeMcqEvaluation(evaluation);
+      return Right(result.evaluationId);
+    } catch (e) {
+      return Left(
+        ServerFailure('Failed to store MCQ evaluation: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> getSessionStats(
     String sessionId,
   ) async {

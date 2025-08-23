@@ -164,6 +164,33 @@ class InterviewRepositoryImpl implements InterviewRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, String>> storeMcqEvaluation({
+    required String sessionId,
+    required int totalQuestions,
+    required int correctAnswers,
+    required double finalScore,
+    int? timeTaken,
+  }) async {
+    if (!await networkService.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final evaluationId = await remoteDataSource.storeMcqEvaluation(
+        sessionId: sessionId,
+        totalQuestions: totalQuestions,
+        correctAnswers: correctAnswers,
+        finalScore: finalScore,
+        timeTaken: timeTaken,
+      );
+      return Right(evaluationId);
+    } on DioException catch (e) {
+      return Left(_handleDioError(e));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   Future<Either<Failure, List<InterviewSessionModel>>> getUserSessions(
     String userId,
   ) async {

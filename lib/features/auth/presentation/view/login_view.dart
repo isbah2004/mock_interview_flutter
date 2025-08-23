@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/enums/social_auth_type.dart';
+import 'package:mock_interview/core/enums/auth_provider.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
 import 'package:mock_interview/core/utils/constants/images.dart';
 import 'package:mock_interview/core/utils/validators/validators.dart';
@@ -226,7 +226,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                             );
                           },
                           isLoading: false,
-                          type: SocialAuthType.google,
+                          type: AuthType.google,
                         ),
 
                         const SizedBox(height: 16),
@@ -238,7 +238,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                             );
                           },
                           isLoading: false,
-                          type: SocialAuthType.facebook,
+                          type: AuthType.facebook,
                         ),
 
                         const SizedBox(height: 32),

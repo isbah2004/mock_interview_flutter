@@ -4,6 +4,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:dio/dio.dart';
 import 'package:mock_interview/core/constants/api_constants.dart';
 import 'package:mock_interview/core/constants/app_secrets.dart';
+import 'package:mock_interview/core/constants/database_constants.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import 'package:mock_interview/core/services/api_service.dart';
 import 'package:mock_interview/features/mcqinterviews/data/models/start_interview_request.dart';
@@ -37,6 +38,14 @@ abstract class InterviewRemoteDataSource {
     required int timeTaken,
     required int totalQuestions,
     required int correctAnswers,
+  });
+
+  Future<String> storeMcqEvaluation({
+    required String sessionId,
+    required int totalQuestions,
+    required int correctAnswers,
+    required double finalScore,
+    int? timeTaken,
   });
 
   Future<void> storeInterviewSession(InterviewSessionModel session, String id);
@@ -122,7 +131,21 @@ class InterviewRemoteDataSourceImpl implements InterviewRemoteDataSource {
       );
 
       // Convert API response to EvaluationResultModel
-      return EvaluationResultModel.fromJson(response.data);
+      final evaluationResult = EvaluationResultModel.fromJson(response.data);
+
+      // 🆕 Store the evaluation in database
+      final correctAnswers =
+          evaluationResult.results.where((r) => r.isCorrect).length;
+      await storeMcqEvaluation(
+        sessionId: sessionId,
+        totalQuestions: evaluationResult.totalQuestions,
+        correctAnswers: correctAnswers,
+        finalScore: evaluationResult.finalScore,
+      );
+
+      log('✓ MCQ evaluation stored successfully');
+
+      return evaluationResult;
     } on DioException catch (e) {
       throw ServerFailure(e.message ?? 'Failed to submit answers');
     } catch (e) {
@@ -178,6 +201,44 @@ class InterviewRemoteDataSourceImpl implements InterviewRemoteDataSource {
     } catch (e) {
       log('❌ Unexpected error completing interview: $e');
       throw ServerFailure('Failed to complete interview: $e');
+    }
+  }
+
+  @override
+  Future<String> storeMcqEvaluation({
+    required String sessionId,
+    required int totalQuestions,
+    required int correctAnswers,
+    required double finalScore,
+    int? timeTaken,
+  }) async {
+    try {
+      log('Storing MCQ evaluation for session: $sessionId');
+
+      final evaluationData = {
+        'sessionId': sessionId,
+        'totalQuestions': totalQuestions,
+        'correctAnswers': correctAnswers,
+        'finalScore': finalScore,
+        'timeTaken': timeTaken,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      final response = await _databases.createDocument(
+        databaseId: AppSecrets.databaseId,
+        collectionId: DatabaseConstants.mcqEvaluationsCollection,
+        documentId: ID.unique(),
+        data: evaluationData,
+      );
+
+      log('✓ MCQ evaluation stored successfully: ${response.$id}');
+      return response.$id;
+    } on AppwriteException catch (e) {
+      log('❌ AppwriteException storing MCQ evaluation: ${e.message}');
+      throw ServerFailure('Failed to store MCQ evaluation: ${e.message}');
+    } catch (e) {
+      log('❌ Unexpected error storing MCQ evaluation: $e');
+      throw ServerFailure('Failed to store MCQ evaluation: $e');
     }
   }
 
@@ -337,34 +398,6 @@ class InterviewRemoteDataSourceImpl implements InterviewRemoteDataSource {
     } catch (e) {
       log('❌ Unexpected error fetching questions: $e');
       throw ServerFailure('Failed to fetch session questions: $e');
-    }
-  }
-
-  Future<void> _updateSessionCompletion(
-    String sessionId,
-    Map<String, dynamic> evaluationData,
-  ) async {
-    try {
-      final updateData = {
-        'isCompleted': true,
-        'completedAt': DateTime.now().toIso8601String(),
-        'score': evaluationData['overall_score']?.toDouble() ?? 0.0,
-        'percentage': evaluationData['overall_percentage']?.toDouble() ?? 0.0,
-        'passed':
-            (evaluationData['overall_percentage']?.toDouble() ?? 0.0) >= 60.0,
-      };
-
-      await _databases.updateDocument(
-        databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
-        documentId: sessionId,
-        data: updateData,
-      );
-
-      log('✓ Session completion updated successfully');
-    } catch (e) {
-      log('❌ Failed to update session completion: $e');
-      // Don't throw here as the main operation was successful
     }
   }
 

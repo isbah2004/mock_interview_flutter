@@ -1,1 +1,0 @@
-enum SocialAuthType {google,facebook}

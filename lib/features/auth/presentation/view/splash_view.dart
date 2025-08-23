@@ -79,7 +79,6 @@ class _SplashViewState extends State<SplashView>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
     
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
