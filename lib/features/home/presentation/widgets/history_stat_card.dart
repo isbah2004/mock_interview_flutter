@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/colorpalette/light_theme.dart';
 
 class HistoryStatCard extends StatelessWidget {
   final String value;
   final String label;
   final IconData icon;
-  final List<Color> gradientColors;
+  final bool isPrimary;
 
   const HistoryStatCard({
     super.key,
     required this.value,
     required this.label,
     required this.icon,
-    required this.gradientColors,
+    this.isPrimary = false,
   });
 
   @override
@@ -21,38 +20,58 @@ class HistoryStatCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: isPrimary 
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.onSurface.withOpacity(0.1),
-            blurRadius: 8,
+            color: isPrimary 
+                ? theme.colorScheme.primary.withOpacity(0.3)
+                : theme.colorScheme.onSurface.withOpacity(0.1),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isPrimary 
+                    ? theme.colorScheme.onPrimary.withOpacity(0.2)
+                    : theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                icon,
+                color: isPrimary 
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
               value,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: isPrimary 
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: LightThemePalette.gray100,
+                color: isPrimary 
+                    ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],

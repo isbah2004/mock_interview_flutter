@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview_bloc.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_cubit.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview/interview_bloc.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview_setup/interview_setup_bloc.dart';
 import 'package:mock_interview/firebase_options.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/navigation/routes.dart';
@@ -69,12 +71,14 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<McqInterviewBloc>(
           create: (context) => serviceLocator<McqInterviewBloc>(),
         ),
+        BlocProvider<InterviewBloc>(create: (context)=> serviceLocator<InterviewBloc>()),
+        BlocProvider<InterviewSetupBloc>(create: (context)=> serviceLocator<InterviewSetupBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Mockee',
-        theme: lightTheme,
-        darkTheme: darkTheme,
+        theme: LightTheme.theme,
+        darkTheme: DarkTheme.theme,
         themeMode: ThemeMode.light,
         initialRoute: AppRoutes.splash,
         onGenerateRoute: AppRouter.generateRoute,

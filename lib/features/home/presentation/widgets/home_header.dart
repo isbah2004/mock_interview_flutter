@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colorpalette/light_theme.dart';
-import '../../../../core/constants/app_strings.dart';
+import 'package:mock_interview/core/constants/app_strings.dart';
 
 class HomeHeader extends StatelessWidget {
   final String userId;
@@ -19,7 +18,7 @@ class HomeHeader extends StatelessWidget {
           children: [
             Text(
               'Hi there! 👋',
-              style: theme.textTheme.displayMedium?.copyWith(
+              style: theme.textTheme.headlineMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
@@ -28,7 +27,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               AppStrings.readyForInterview,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],
@@ -40,18 +39,25 @@ class HomeHeader extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [LightThemePalette.gray700, theme.colorScheme.primary],
+              colors: [
+                theme.colorScheme.primary,
+                theme.colorScheme.primary.withOpacity(0.8),
+              ],
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.onSurface.withOpacity(0.1),
-                blurRadius: 8,
+                color: theme.colorScheme.primary.withOpacity(0.3),
+                blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Icon(Icons.person, color: theme.colorScheme.surface, size: 24),
+          child: Icon(
+            Icons.person,
+            color: theme.colorScheme.onPrimary,
+            size: 24,
+          ),
         ),
       ],
     );

@@ -6,10 +6,13 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String home = '/home';
-  static const String interviewResultView = '/interview-result';
-  static const String mcqInterviewSetup = '/mcq-interview-setup';
-  static const String voiceInterviewSetup = '/voice-interview-setup';
-  static const String mcqInterview = '/mcq-interview';
-  static const String voiceInterview = '/voice-interview';
- 
+  static const String mcqInterviewResultView = '/mcq-interview-result';
+  static const String mcqInterviewSetupView = '/mcq-interview-setup';
+  static const String voiceInterviewSetupView = '/voice-interview-setup';
+  static const String mcqInterviewView = '/mcq-interview';
+  static const String voiceInterviewView = '/voice-interview';
+
+  // Explicit result routes
+  static const String mcqResultView = '/mcq-result';
+  static const String voiceResultView = '/voice-result';
 }

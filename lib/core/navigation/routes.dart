@@ -9,13 +9,14 @@ import 'package:mock_interview/features/auth/presentation/view/reset_password.da
 import 'package:mock_interview/features/auth/presentation/view/signup_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/splash_view.dart';
 import 'package:mock_interview/features/home/presentation/view/home_view.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_view.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view_new.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_result_args.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_args.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview_bloc.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_cubit.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/interview_setup_view.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/result_view.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_view_new.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_result_view.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/view/voice_interview_setup_view.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -34,21 +35,27 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const ResetPasswordView());
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeView());
-      case AppRoutes.interviewResultView:
+
+      // Generic interview result route (keeps existing behavior)
+      case AppRoutes.mcqInterviewResultView:
         final args = settings.arguments as InterviewResultArgs;
         return MaterialPageRoute(
-          builder: (_) => ResultPage(evaluationResult: args.evaluationResult),
+          builder:
+              (_) => McqResultView(evaluationResult: args.evaluationResult),
         );
-      case AppRoutes.mcqInterviewSetup:
+
+      // MCQ interview setup
+      case AppRoutes.mcqInterviewSetupView:
         return MaterialPageRoute(
           builder:
               (_) => BlocProvider(
                 create: (_) => serviceLocator.get<McqInterviewBloc>(),
-                child: const InterviewSetupPage(),
+                child: const McqInterviewSetupView(),
               ),
         );
 
-      case AppRoutes.mcqInterview:
+      // MCQ interview
+      case AppRoutes.mcqInterviewView:
         final args = settings.arguments as McqInterviewArgs;
         return MaterialPageRoute(
           builder:
@@ -58,18 +65,42 @@ class AppRouter {
                     create: (_) => serviceLocator.get<McqInterviewBloc>(),
                   ),
                   BlocProvider(
-                    create:
-                        (_) => serviceLocator.get<TimerCubit>(
-                          param1: 1800, // 30 minutes
-                        ),
+                    // TimerCubit is now registered as a simple factory (no constructor params)
+                    create: (_) => serviceLocator.get<TimerCubit>(),
                   ),
                 ],
-                child: McqInterviewPage(
+                child: McqInterviewView(
                   sessionId: args.sessionId,
-                  questions: args.questions,
+                  questions: args.questions, userId: '', jobRole: '', difficultyLevel: '', category: '',
                 ),
               ),
         );
+
+      // Voice interview setup
+      case AppRoutes.voiceInterviewSetupView:
+        return MaterialPageRoute(
+          builder: (_) => const VoiceInterviewSetupView(),
+        );
+
+      // Voice interview
+      case AppRoutes.voiceInterviewView:
+        // This route should use direct navigation from setup screen, not named routes
+        return MaterialPageRoute(
+          builder:
+              (_) => Container(
+                child: const Center(
+                  child: Text(
+                    'Use VoiceInterviewSetupView to start interviews',
+                  ),
+                ),
+              ),
+        );
+
+      // Voice result view
+      // case AppRoutes.voiceResultView:
+      //   return MaterialPageRoute(
+      //     builder: (_) => const InterviewResultView(),
+      //   );
 
       default:
         return MaterialPageRoute(

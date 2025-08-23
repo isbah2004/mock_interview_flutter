@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/colorpalette/light_theme.dart';
 
 class HistoryInterviewCard extends StatelessWidget {
   final Map<String, dynamic> interview;
@@ -13,31 +12,33 @@ class HistoryInterviewCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.onSurface.withOpacity(0.05),
-            blurRadius: 8,
+            color: theme.colorScheme.primary.withOpacity(0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Row(
           children: [
-            InterviewIconContainer(icon: interview['icon']),
-            const SizedBox(width: 16),
+            _InterviewIconContainer(icon: interview['icon']),
+            const SizedBox(width: 20),
             Expanded(
-              child: InterviewDetails(
+              child: _InterviewDetails(
                 type: interview['type'],
                 date: interview['date'],
                 duration: interview['duration'],
               ),
             ),
-            InterviewScore(score: interview['score']),
+            _InterviewScore(score: interview['score']),
           ],
         ),
       ),
@@ -45,34 +46,40 @@ class HistoryInterviewCard extends StatelessWidget {
   }
 }
 
-class InterviewIconContainer extends StatelessWidget {
+class _InterviewIconContainer extends StatelessWidget {
   final IconData icon;
 
-  const InterviewIconContainer({super.key, required this.icon});
+  const _InterviewIconContainer({required this.icon});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      width: 48,
-      height: 48,
+      width: 52,
+      height: 52,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [LightThemePalette.gray600, LightThemePalette.gray700],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Icon(icon, color: Colors.white, size: 24),
+      child: Icon(icon, color: theme.colorScheme.onPrimary, size: 26),
     );
   }
 }
 
-class InterviewDetails extends StatelessWidget {
+class _InterviewDetails extends StatelessWidget {
   final String type;
   final String date;
   final String duration;
 
-  const InterviewDetails({
-    super.key,
+  const _InterviewDetails({
     required this.type,
     required this.date,
     required this.duration,
@@ -87,24 +94,23 @@ class InterviewDetails extends StatelessWidget {
       children: [
         Text(
           type,
-          style: theme.textTheme.bodyLarge?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.primary,
           ),
         ),
-        const SizedBox(height: 4),
-        InterviewMetadata(date: date, duration: duration),
+        const SizedBox(height: 6),
+        _InterviewMetadata(date: date, duration: duration),
       ],
     );
   }
 }
 
-class InterviewMetadata extends StatelessWidget {
+class _InterviewMetadata extends StatelessWidget {
   final String date;
   final String duration;
 
-  const InterviewMetadata({
-    super.key,
+  const _InterviewMetadata({
     required this.date,
     required this.duration,
   });
@@ -115,21 +121,29 @@ class InterviewMetadata extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(Icons.calendar_today, size: 16, color: LightThemePalette.gray600),
-        const SizedBox(width: 4),
+        Icon(
+          Icons.calendar_today_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        const SizedBox(width: 6),
         Text(
           _formatDate(date),
           style: theme.textTheme.bodySmall?.copyWith(
-            color: LightThemePalette.gray600,
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
-        const SizedBox(width: 12),
-        Icon(Icons.access_time, size: 16, color: LightThemePalette.gray600),
-        const SizedBox(width: 4),
+        const SizedBox(width: 16),
+        Icon(
+          Icons.access_time_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        const SizedBox(width: 6),
         Text(
           duration,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: LightThemePalette.gray600,
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
@@ -142,10 +156,10 @@ class InterviewMetadata extends StatelessWidget {
   }
 }
 
-class InterviewScore extends StatelessWidget {
+class _InterviewScore extends StatelessWidget {
   final int score;
 
-  const InterviewScore({super.key, required this.score});
+  const _InterviewScore({required this.score});
 
   @override
   Widget build(BuildContext context) {
@@ -161,41 +175,43 @@ class InterviewScore extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
         ),
-        const SizedBox(height: 4),
-        ScoreBadge(score: score),
+        const SizedBox(height: 6),
+        _ScoreBadge(score: score),
       ],
     );
   }
 }
 
-class ScoreBadge extends StatelessWidget {
+class _ScoreBadge extends StatelessWidget {
   final int score;
 
-  const ScoreBadge({super.key, required this.score});
+  const _ScoreBadge({required this.score});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _getScoreColor(score),
-        borderRadius: BorderRadius.circular(12),
+        color: _getScoreColor(score, theme),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         _getScoreLabel(score),
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+        style: TextStyle(
+          fontSize: 11,
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Color _getScoreColor(int score) {
-    if (score >= 90) return LightThemePalette.gray900;
-    if (score >= 80) return LightThemePalette.gray700;
-    return LightThemePalette.gray500;
+  Color _getScoreColor(int score, ThemeData theme) {
+    if (score >= 90) return theme.colorScheme.primary;
+    if (score >= 80) return theme.colorScheme.primary.withOpacity(0.8);
+    return theme.colorScheme.primary.withOpacity(0.6);
   }
 
   String _getScoreLabel(int score) {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mock_interview/features/home/presentation/view/tabs/history.dart';
+import 'package:mock_interview/features/home/presentation/view/tabs/home.dart';
+import 'package:mock_interview/features/home/presentation/view/tabs/profile.dart';
+import 'package:mock_interview/features/home/presentation/view/tabs/settings.dart';
+import 'package:mock_interview/features/home/presentation/widgets/custom_bottom_navigation.dart';
 import '../../cubit/navigation_cubit.dart';
 import '../../cubit/navigation_state.dart';
-import '../widgets/custom_bottom_navigation.dart';
-import 'tabs/home.dart';
-import 'tabs/history.dart';
-import 'tabs/profile.dart';
-import 'tabs/settings.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -28,7 +28,7 @@ class HomeView extends StatelessWidget {
 
           return Scaffold(
             body: IndexedStack(index: currentIndex, children: _tabs),
-            bottomNavigationBar: const CustomBottomNavigation(),
+            bottomNavigationBar: const BottomNavigation(),
           );
         },
       ),

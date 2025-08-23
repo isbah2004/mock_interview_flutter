@@ -20,15 +20,42 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+
+    _animationController.forward();
+  }
+
   @override
   void dispose() {
+    _animationController.dispose();
     emailController.dispose();
     passwordController.dispose();
     emailFocusNode.dispose();
@@ -38,6 +65,9 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -47,7 +77,11 @@ class _LoginViewState extends State<LoginView> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: theme.colorScheme.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             );
           }
@@ -55,125 +89,201 @@ class _LoginViewState extends State<LoginView> {
         builder: (context, state) {
           final isLoading = state is AuthLoading;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 50),
-                    Image.asset(AppImages.logo, height: 175),
-                    const SizedBox(height: 30),
-                    ReusableTextField(
-                      onFieldSubmitted: (value) {
-                        Validators.fieldFocusChange(
-                          context,
-                          emailFocusNode,
-                          passwordFocusNode,
-                        );
-                      },
-                      prefix: const Icon(Icons.alternate_email_outlined),
-                      hintText: 'Email',
-                      controller: emailController,
-                      focusNode: emailFocusNode,
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !isLoading,
-                      validator: (p0) {
-                        return Validators.validateEmail(p0 ?? '');
-                      },
-                    ),
-                    const SizedBox(height: 30),
-                    PasswordTextField(
-                      hintText: 'Password',
-                      controller: passwordController,
-                      focusNode: passwordFocusNode,
-                      enabled: !isLoading,
-                    ),
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: GestureDetector(
-                          onTap:
-                              isLoading
-                                  ? null
-                                  : () {
-                                    Navigator.pushNamed(context, AppRoutes.forgotPassword);
-                                  },
-                          child: Text(
-                            textAlign: TextAlign.end,
-                            'Forgot Password?',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium!.copyWith(
-                              color:
-                                  isLoading
-                                      ? Colors.grey
-                                      : Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    PrimaryButton(
-                      onTap: () => _handleLogin(),
-                      title: 'Login',
-                      isLoading: isLoading,
-                    ),
-                    const SizedBox(height: 30),
-                    // Social auth section commented out as requested
-                    const ORDivider(),
-                    const SizedBox(height: 30),
-                    // Disable social auth for now as requested
-                  
-                    SocialAuthButton(onTap: (){context.read<AuthBloc>().add(AuthGoogleSignInRequested());},
-                    isLoading: false, type: SocialAuthType.google,
-                    ),
-                    const SizedBox(height: 30),
-                    SocialAuthButton(onTap: () {
-                      
-          context.read<AuthBloc>().add(const AuthFacebookSignInRequested());
-                    },
-                    isLoading: false, type: SocialAuthType.facebook,
-                    ), const SizedBox(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Don\'t have an account? ',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.secondary,
+                        SizedBox(height: size.height * 0.08),
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Image.asset(
+                                  AppImages.logo,
+                                  height: 80,
+                                  width: 80,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              Text(
+                                'Welcome Back!',
+                                style: theme.textTheme.headlineLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Sign in to continue your mock interview journey',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
-                        GestureDetector(
-                          onTap:
-                              isLoading
-                                  ? null
-                                  : () {
-                            Navigator.pushNamed(context, AppRoutes.register);
-                                  },
-                          child: Text(
-                            ' Signup',
-                            style: Theme.of(
+
+                        const SizedBox(height: 48),
+
+                        // Email Field
+                        ReusableTextField(
+                          label: 'Email Address',
+                          hintText: 'Enter your email',
+                          controller: emailController,
+                          focusNode: emailFocusNode,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: !isLoading,
+                          prefix: Icon(
+                            Icons.email_outlined,
+                            color: theme.colorScheme.primary,
+                          ),
+                          validator:
+                              (value) => Validators.validateEmail(value ?? ''),
+                          onFieldSubmitted: (value) {
+                            Validators.fieldFocusChange(
                               context,
-                            ).textTheme.bodyMedium?.copyWith(
-                              color:
-                                  isLoading
-                                      ? Colors.grey
-                                      : Theme.of(context).colorScheme.primary,
+                              emailFocusNode,
+                              passwordFocusNode,
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Password Field
+                        PasswordTextField(
+                          hintText: 'Enter your password',
+                          controller: passwordController,
+                          focusNode: passwordFocusNode,
+
+                          enabled: !isLoading,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Forgot Password
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        AppRoutes.forgotPassword,
+                                      );
+                                    },
+                            child: Text(
+                              'Forgot Password?',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
+
+                        const SizedBox(height: 32),
+
+                        // Login Button
+                        PrimaryButton(
+                          onTap: _handleLogin,
+                          title: 'Sign In',
+                          isLoading: isLoading,
+                          icon: Icons.login,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Divider
+                        const ORDivider(),
+
+                        const SizedBox(height: 32),
+
+                        // Social Auth Buttons
+                        SocialAuthButton(
+                          onTap: () {
+                            context.read<AuthBloc>().add(
+                              AuthGoogleSignInRequested(),
+                            );
+                          },
+                          isLoading: false,
+                          type: SocialAuthType.google,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        SocialAuthButton(
+                          onTap: () {
+                            context.read<AuthBloc>().add(
+                              const AuthFacebookSignInRequested(),
+                            );
+                          },
+                          isLoading: false,
+                          type: SocialAuthType.facebook,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Sign Up Link
+                        Center(
+                          child: RichText(
+                            text: TextSpan(
+                              text: "Don't have an account? ",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.7,
+                                ),
+                              ),
+                              children: [
+                                WidgetSpan(
+                                  child: GestureDetector(
+                                    onTap:
+                                        isLoading
+                                            ? null
+                                            : () {
+                                              Navigator.pushNamed(
+                                                context,
+                                                AppRoutes.register,
+                                              );
+                                            },
+                                    child: Text(
+                                      'Sign Up',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
                       ],
                     ),
-                    const SizedBox(height: 30),
-                  ],
+                  ),
                 ),
               ),
             ),

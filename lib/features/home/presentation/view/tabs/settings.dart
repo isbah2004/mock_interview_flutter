@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mock_interview/core/constants/app_strings.dart';
+import 'package:mock_interview/core/theme/colorpalette/app_colors.dart';
 import '../../../../../core/services/settings_manager.dart';
 
 class SettingsTab extends StatefulWidget {
@@ -9,7 +10,8 @@ class SettingsTab extends StatefulWidget {
   State<SettingsTab> createState() => _SettingsTabState();
 }
 
-class _SettingsTabState extends State<SettingsTab> {
+class _SettingsTabState extends State<SettingsTab>
+    with TickerProviderStateMixin {
   bool pushNotifications = true;
   bool sound = true;
   bool vibration = false;
@@ -17,11 +19,26 @@ class _SettingsTabState extends State<SettingsTab> {
   bool voiceRecordingQuality = true;
   bool autoSaveRecordings = true;
   bool isLoading = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _loadSettings() {
@@ -36,6 +53,7 @@ class _SettingsTabState extends State<SettingsTab> {
         autoSaveRecordings = settings['autoSaveRecordings'];
         isLoading = false;
       });
+      _animationController.forward();
     } catch (e) {
       print('Error loading settings: $e');
       setState(() {
@@ -58,7 +76,6 @@ class _SettingsTabState extends State<SettingsTab> {
           break;
         case 'darkMode':
           await SettingsManager.setDarkMode(value);
-          // TODO: Update app theme
           break;
         case 'voiceRecordingQuality':
           await SettingsManager.setVoiceRecordingQuality(value);
@@ -74,215 +91,256 @@ class _SettingsTabState extends State<SettingsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     if (isLoading) {
       return Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.surface,
-              colorScheme.surface.withOpacity(0.8),
-              colorScheme.surface,
-            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppColors.lightGradient,
           ),
         ),
-        child: const Center(child: CircularProgressIndicator()),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryPurpleLight),
+          ),
+        ),
       );
     }
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colorScheme.surface,
-            colorScheme.surface.withOpacity(0.8),
-            colorScheme.surface,
-          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: AppColors.lightGradient,
         ),
       ),
       child: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
+            // Enhanced Header
+            Container(
+              margin: const EdgeInsets.all(24.0),
               padding: const EdgeInsets.all(24.0),
-              child: Text(
-                AppStrings.settings,
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: AppColors.lightGradient,
                 ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryPurpleLight.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primaryPurpleLight,
+                          AppColors.primaryPurpleLight.withOpacity(0.8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.settings,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    AppStrings.settings,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
             ),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    // Notifications
-                    _buildSettingsCard(
-                      context,
-                      AppStrings.notifications,
-                      Icons.notifications,
-                      [
-                        _buildSwitchTile(
-                          context,
-                          AppStrings.pushNotifications,
-                          AppStrings.receiveInterviewReminders,
-                          pushNotifications,
-                          (value) {
-                            setState(() => pushNotifications = value);
-                            _updateSetting('pushNotifications', value);
-                          },
-                        ),
-                        _buildSwitchTile(
-                          context,
-                          AppStrings.sound,
-                          AppStrings.notificationSounds,
-                          sound,
-                          (value) {
-                            setState(() => sound = value);
-                            _updateSetting('sound', value);
-                          },
-                        ),
-                        _buildSwitchTile(
-                          context,
-                          AppStrings.vibration,
-                          AppStrings.vibrateOnNotifications,
-                          vibration,
-                          (value) {
-                            setState(() => vibration = value);
-                            _updateSetting('vibration', value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Appearance
-                    _buildSettingsCard(
-                      context,
-                      AppStrings.appearance,
-                      Icons.brightness_6,
-                      [
-                        _buildSwitchTile(
-                          context,
-                          AppStrings.darkMode,
-                          AppStrings.switchToDarkTheme,
-                          darkMode,
-                          (value) {
-                            setState(() => darkMode = value);
-                            _updateSetting('darkMode', value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Audio Settings
-                    _buildSettingsCard(context, 'Audio', Icons.volume_up, [
-                      _buildSwitchTile(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // Notifications
+                      _buildEnhancedSettingsCard(
                         context,
-                        AppStrings.voiceRecordingQuality,
-                        AppStrings.highQualityRecordings,
-                        voiceRecordingQuality,
-                        (value) {
-                          setState(() => voiceRecordingQuality = value);
-                          _updateSetting('voiceRecordingQuality', value);
-                        },
-                      ),
-                      _buildSwitchTile(
-                        context,
-                        AppStrings.autoSaveRecordings,
-                        AppStrings.automaticallySaveRecordings,
-                        autoSaveRecordings,
-                        (value) {
-                          setState(() => autoSaveRecordings = value);
-                          _updateSetting('autoSaveRecordings', value);
-                        },
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-
-                    // Account & Security
-                    _buildMenuCard(
-                      context,
-                      'Privacy & Security',
-                      'Manage your account security',
-                      Icons.security,
-                      () {
-                        // Navigate to security settings
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    _buildMenuCard(
-                      context,
-                      'Help & Support',
-                      'Get help and contact support',
-                      Icons.help_outline,
-                      () {
-                        // Navigate to help
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Logout
-                    GestureDetector(
-                      onTap: () {
-                        // Handle logout
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              colorScheme.primary,
-                              colorScheme.primary.withOpacity(0.8),
-                            ],
+                        AppStrings.notifications,
+                        Icons.notifications,
+                        AppColors.primaryPurpleLight,
+                        [
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.pushNotifications,
+                            AppStrings.receiveInterviewReminders,
+                            pushNotifications,
+                            (value) {
+                              setState(() => pushNotifications = value);
+                              _updateSetting('pushNotifications', value);
+                            },
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.shadow.withOpacity(0.15),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.sound,
+                            AppStrings.notificationSounds,
+                            sound,
+                            (value) {
+                              setState(() => sound = value);
+                              _updateSetting('sound', value);
+                            },
+                          ),
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.vibration,
+                            AppStrings.vibrateOnNotifications,
+                            vibration,
+                            (value) {
+                              setState(() => vibration = value);
+                              _updateSetting('vibration', value);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Appearance
+                      _buildEnhancedSettingsCard(
+                        context,
+                        AppStrings.appearance,
+                        Icons.brightness_6,
+                        AppColors.darkSecondaryVariant,
+                        [
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.darkMode,
+                            AppStrings.switchToDarkTheme,
+                            darkMode,
+                            (value) {
+                              setState(() => darkMode = value);
+                              _updateSetting('darkMode', value);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Audio Settings
+                      _buildEnhancedSettingsCard(
+                        context,
+                        'Audio',
+                        Icons.volume_up,
+                        AppColors.primaryPurpleLight,
+                        [
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.voiceRecordingQuality,
+                            AppStrings.highQualityRecordings,
+                            voiceRecordingQuality,
+                            (value) {
+                              setState(() => voiceRecordingQuality = value);
+                              _updateSetting('voiceRecordingQuality', value);
+                            },
+                          ),
+                          _buildEnhancedSwitchTile(
+                            context,
+                            AppStrings.autoSaveRecordings,
+                            AppStrings.automaticallySaveRecordings,
+                            autoSaveRecordings,
+                            (value) {
+                              setState(() => autoSaveRecordings = value);
+                              _updateSetting('autoSaveRecordings', value);
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Account & Security
+                      _buildEnhancedMenuCard(
+                        context,
+                        'Privacy & Security',
+                        'Manage your account security',
+                        Icons.security,
+                        AppColors.primaryPurpleLight,
+                        () {},
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildEnhancedMenuCard(
+                        context,
+                        'Help & Support',
+                        'Get help and contact support',
+                        Icons.help_outline,
+                        AppColors.primaryPurpleLight,
+                        () {},
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Enhanced Logout Button
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.red.shade400,
+                                Colors.red.shade600,
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.logout,
-                                color: colorScheme.onPrimary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                AppStrings.signOut,
-                                style: textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.onPrimary,
-                                ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.3),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.logout,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  AppStrings.signOut,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 100), // Space for bottom nav
-                  ],
+                      const SizedBox(height: 100),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -292,26 +350,28 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
-  Widget _buildSettingsCard(
+  Widget _buildEnhancedSettingsCard(
     BuildContext context,
     String title,
     IconData icon,
+    Color accentColor,
     List<Widget> children,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors:AppColors.lightGradient,
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: accentColor.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -323,30 +383,30 @@ class _SettingsTabState extends State<SettingsTab> {
             Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        colorScheme.primary,
-                        colorScheme.primary.withOpacity(0.8),
+                        accentColor,
+                        accentColor.withOpacity(0.8),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Icon(icon, color: colorScheme.onPrimary, size: 20),
+                  child: Icon(icon, color: Colors.white, size: 24),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Text(
                   title,
-                  style: textTheme.titleMedium?.copyWith(
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             ...children,
           ],
         ),
@@ -354,19 +414,17 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
-  Widget _buildSwitchTile(
+  Widget _buildEnhancedSwitchTile(
     BuildContext context,
     String title,
     String subtitle,
     bool value,
     Function(bool) onChanged,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Row(
         children: [
           Expanded(
@@ -376,77 +434,83 @@ class _SettingsTabState extends State<SettingsTab> {
                 Text(
                   title,
                   style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: colorScheme.primary,
-            activeTrackColor: colorScheme.primary.withOpacity(0.5),
-            inactiveThumbColor: colorScheme.onSurface.withOpacity(0.3),
-            inactiveTrackColor: colorScheme.outline.withOpacity(0.3),
+          Transform.scale(
+            scale: 1.2,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: Colors.white,
+              activeTrackColor: AppColors.primaryPurpleLight,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: AppColors.darkSecondaryVariant,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuCard(
+  Widget _buildEnhancedMenuCard(
     BuildContext context,
     String title,
     String subtitle,
     IconData icon,
+    Color accentColor,
     VoidCallback onTap,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.outline.withOpacity(0.3)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors:AppColors.lightGradient,
+          ),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: accentColor.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      colorScheme.primary,
-                      colorScheme.primary.withOpacity(0.8),
+                      accentColor,
+                      accentColor.withOpacity(0.8),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: Icon(icon, color: colorScheme.onPrimary, size: 20),
+                child: Icon(icon, color: Colors.white, size: 24),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,23 +518,31 @@ class _SettingsTabState extends State<SettingsTab> {
                     Text(
                       title,
                       style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: colorScheme.onSurface.withOpacity(0.5),
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.chevron_right,
+                  color: accentColor,
+                  size: 20,
+                ),
               ),
             ],
           ),

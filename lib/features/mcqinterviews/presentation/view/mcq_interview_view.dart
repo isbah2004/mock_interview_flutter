@@ -1,394 +1,542 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/entities/question.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview_event.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview_state.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_state.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/result_view.dart';
-import '../bloc/mcq_interview_bloc.dart';
-import '../cubit/timer_cubit.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_bloc/flutter_bloc.dart';
+// import 'package:mock_interview/core/entities/question.dart';
+// import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview/mcq_interview_event.dart';
+// import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview/mcq_interview_state.dart';
+// import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_state.dart';
+// import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_result_view.dart';
+// import '../bloc/mcq_interview/mcq_interview_bloc.dart';
+// import '../bloc/mcq_navigation/mcq_navigation_bloc.dart';
+// import '../bloc/mcq_navigation/mcq_navigation_event.dart';
+// import '../bloc/mcq_navigation/mcq_navigation_state.dart';
+// import '../cubit/timer_cubit.dart';
 
-class McqInterviewPage extends StatefulWidget {
-  final String sessionId;
-  final List<Question> questions;
+// class McqInterviewView extends StatelessWidget {
+//   final String sessionId;
+//   final List<Question> questions;
+//   final String userId;
+//   final String jobRole;
+//   final String difficultyLevel;
+//   final String category;
 
-  const McqInterviewPage({
-    super.key,
-    required this.sessionId,
-    required this.questions,
-  });
+//   const McqInterviewView({
+//     super.key,
+//     required this.sessionId,
+//     required this.questions,
+//     required this.userId,
+//     required this.jobRole,
+//     required this.difficultyLevel,
+//     required this.category,
+//   });
 
-  @override
-  State<McqInterviewPage> createState() => _McqInterviewPageState();
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return MultiBlocProvider(
+//       providers: [
+//         BlocProvider(
+//           create: (context) => McqNavigationBloc()..add(InitializeNavigation(questions.length)),
+//         ),
+//       ],
+//       child: McqInterviewContent(
+//         sessionId: sessionId,
+//         questions: questions,
+//         userId: userId,
+//         jobRole: jobRole,
+//         difficultyLevel: difficultyLevel,
+//         category: category,
+//       ),
+//     );
+//   }
+// }
 
-class _McqInterviewPageState extends State<McqInterviewPage> {
-  int _currentQuestionIndex = 0;
-  List<String> _answers = [];
-  String? _selectedOption;
+// class McqInterviewContent extends StatefulWidget {
+//   final String sessionId;
+//   final List<Question> questions;
+//   final String userId;
+//   final String jobRole;
+//   final String difficultyLevel;
+//   final String category;
 
-  @override
-  void initState() {
-    super.initState();
-    _answers = List.filled(widget.questions.length, '');
-    // Start timer for 30 minutes (1800 seconds)
-    context.read<TimerCubit>().startTimer();
-  }
+//   const McqInterviewContent({
+//     super.key,
+//     required this.sessionId,
+//     required this.questions,
+//     required this.userId,
+//     required this.jobRole,
+//     required this.difficultyLevel,
+//     required this.category,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Interview in Progress',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(color: Colors.black),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        elevation: 1,
-        shadowColor: Colors.grey.withOpacity(0.2),
-        actions: [
-          BlocBuilder<TimerCubit, TimerState>(
-            builder: (context, timerState) {
-              return Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      timerState.timeRemaining < 300
-                          ? Colors.red.shade50
-                          : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color:
-                        timerState.timeRemaining < 300
-                            ? Colors.red.shade300
-                            : Colors.grey.shade300,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      size: 16,
-                      color:
-                          timerState.timeRemaining < 300
-                              ? Colors.red.shade700
-                              : Colors.grey.shade700,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      context.read<TimerCubit>().formattedTime,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color:
-                            timerState.timeRemaining < 300
-                                ? Colors.red.shade700
-                                : Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      backgroundColor: Colors.white,
-      body: MultiBlocListener(
-        listeners: [
-          BlocListener<McqInterviewBloc, McqInterviewState>(
-            listener: (context, state) {
-              if (state is InterviewCompleted) {
-                context.read<TimerCubit>().stopTimer();
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder:
-                        (context) => ResultPage(
-                          evaluationResult: state.evaluationResult,
-                        ),
-                  ),
-                );
-              } else if (state is InterviewError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-          ),
-          BlocListener<TimerCubit, TimerState>(
-            listener: (context, timerState) {
-              if (timerState.isFinished) {
-                _submitAnswers();
-              }
-            },
-          ),
-        ],
-        child: BlocBuilder<McqInterviewBloc, McqInterviewState>(
-          builder: (context, state) {
-            if (state is InterviewLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.black),
-              );
-            }
+//   @override
+//   State<McqInterviewContent> createState() => _McqInterviewContentState();
+// }
 
-            final currentQuestion = widget.questions[_currentQuestionIndex];
+// class _McqInterviewContentState extends State<McqInterviewContent> {
+//   @override
+//   void initState() {
+//     super.initState();
+//     // Start timer for 30 minutes (1800 seconds)
+//     context.read<TimerCubit>().startTimer();
+//   }
 
-            return Column(
-              children: [
-                // Progress Bar
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Question ${_currentQuestionIndex + 1} of ${widget.questions.length}',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(color: Colors.grey.shade600),
-                          ),
-                          Text(
-                            '${((_currentQuestionIndex + 1) / widget.questions.length * 100).round()}%',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value:
-                            (_currentQuestionIndex + 1) /
-                            widget.questions.length,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         backgroundColor: Theme.of(context).colorScheme.surface,
+//         title: Text(
+//           'MCQ Interview',
+//           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+//             color: Theme.of(context).colorScheme.onSurface,
+//             fontWeight: FontWeight.w600,
+//           ),
+//         ),
+//         centerTitle: true,
+//         elevation: 0,
+//         surfaceTintColor: Colors.transparent,
+//         actions: [
+//           BlocBuilder<TimerCubit, TimerState>(
+//             builder: (context, state) {
+//               if (state.isRunning) {
+//                 final minutes = state.timeRemaining ~/ 60;
+//                 final seconds = state.timeRemaining % 60;
+//                 return Container(
+//                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+//                   decoration: BoxDecoration(
+//                     color: state.timeRemaining <= 300
+//                         ? Theme.of(context).colorScheme.error.withOpacity(0.1)
+//                         : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+//                     borderRadius: BorderRadius.circular(20),
+//                     border: Border.all(
+//                       color: state.timeRemaining <= 300
+//                           ? Theme.of(context).colorScheme.error
+//                           : Theme.of(context).colorScheme.primary,
+//                     ),
+//                   ),
+//                   child: Row(
+//                     mainAxisSize: MainAxisSize.min,
+//                     children: [
+//                       Icon(
+//                         Icons.timer_outlined,
+//                         size: 16,
+//                         color: state.timeRemaining <= 300
+//                             ? Theme.of(context).colorScheme.error
+//                             : Theme.of(context).colorScheme.primary,
+//                       ),
+//                       const SizedBox(width: 4),
+//                       Text(
+//                         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+//                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
+//                           color: state.timeRemaining <= 300
+//                               ? Theme.of(context).colorScheme.error
+//                               : Theme.of(context).colorScheme.primary,
+//                           fontWeight: FontWeight.w600,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 );
+//               } else if (state.isFinished) {
+//                 WidgetsBinding.instance.addPostFrameCallback((_) {
+//                   _submitAnswers();
+//                 });
+//               }
+//               return const SizedBox.shrink();
+//             },
+//           ),
+//         ],
+//       ),
+//       backgroundColor: Theme.of(context).colorScheme.background,
+//       body: BlocListener<McqInterviewBloc, McqInterviewState>(
+//         listener: (context, state) {
+//           if (state is InterviewCompleted) {
+//             Navigator.of(context).pushReplacement(
+//               MaterialPageRoute(
+//                 builder: (context) => McqResultView(
+//                   evaluationResult: state.evaluationResult,
+//                 ),
+//               ),
+//             );
+//           } else if (state is InterviewError) {
+//             ScaffoldMessenger.of(context).showSnackBar(
+//               SnackBar(
+//                 content: Text(state.message),
+//                 backgroundColor: Theme.of(context).colorScheme.error,
+//               ),
+//             );
+//           }
+//         },
+//         child: BlocBuilder<McqNavigationBloc, McqNavigationState>(
+//           builder: (context, navigationState) {
+//             if (navigationState is! McqNavigationReady) {
+//               return const Center(child: CircularProgressIndicator());
+//             }
 
-                // Question Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Question Card
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade300),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            currentQuestion.questionText,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(color: Colors.black),
-                          ),
-                        ),
+//             final currentQuestion = widget.questions[navigationState.currentQuestionIndex];
 
-                        const SizedBox(height: 24),
+//             return Column(
+//               children: [
+//                 // Progress Bar
+//                 Container(
+//                   margin: const EdgeInsets.all(16),
+//                   child: Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       Row(
+//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                         children: [
+//                           Text(
+//                             'Question ${navigationState.currentQuestionIndex + 1} of ${widget.questions.length}',
+//                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
+//                               color: Theme.of(context).colorScheme.onSurfaceVariant,
+//                               fontWeight: FontWeight.w500,
+//                             ),
+//                           ),
+//                           Text(
+//                             '${((navigationState.currentQuestionIndex + 1) / widget.questions.length * 100).round()}%',
+//                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
+//                               color: Theme.of(context).colorScheme.primary,
+//                               fontWeight: FontWeight.w600,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                       const SizedBox(height: 8),
+//                       LinearProgressIndicator(
+//                         value: (navigationState.currentQuestionIndex + 1) / widget.questions.length,
+//                         backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+//                         valueColor: AlwaysStoppedAnimation<Color>(
+//                           Theme.of(context).colorScheme.primary,
+//                         ),
+//                         minHeight: 6,
+//                       ),
+//                     ],
+//                   ),
+//                 ),
 
-                        // Options
-                        ...List.generate(
-                          currentQuestion.options!.length,
-                          (index) => _buildOptionCard(
-                            index,
-                            currentQuestion.options![index],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+//                 // Question Content
+//                 Expanded(
+//                   child: SingleChildScrollView(
+//                     padding: const EdgeInsets.symmetric(horizontal: 16),
+//                     child: Column(
+//                       crossAxisAlignment: CrossAxisAlignment.start,
+//                       children: [
+//                         Container(
+//                           width: double.infinity,
+//                           padding: const EdgeInsets.all(20),
+//                           decoration: BoxDecoration(
+//                             color: Theme.of(context).colorScheme.surface,
+//                             borderRadius: BorderRadius.circular(16),
+//                             border: Border.all(
+//                               color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+//                             ),
+//                             boxShadow: [
+//                               BoxShadow(
+//                                 color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+//                                 blurRadius: 10,
+//                                 offset: const Offset(0, 2),
+//                               ),
+//                             ],
+//                           ),
+//                           child: Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             children: [
+//                               Container(
+//                                 padding: const EdgeInsets.symmetric(
+//                                   horizontal: 8,
+//                                   vertical: 4,
+//                                 ),
+//                                 decoration: BoxDecoration(
+//                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+//                                   borderRadius: BorderRadius.circular(6),
+//                                 ),
+//                                 child: Text(
+//                                   currentQuestion.category.toUpperCase(),
+//                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
+//                                     color: Theme.of(context).colorScheme.primary,
+//                                     fontWeight: FontWeight.w600,
+//                                   ),
+//                                 ),
+//                               ),
+//                               const SizedBox(height: 16),
+//                               Text(
+//                                 currentQuestion.questionText,
+//                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+//                                   color: Theme.of(context).colorScheme.onSurface,
+//                                   fontWeight: FontWeight.w600,
+//                                   height: 1.3,
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
 
-                // Navigation Buttons
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      top: BorderSide(color: Colors.grey.shade200),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      if (_currentQuestionIndex > 0)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _previousQuestion,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.black),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: Text(
-                              'Previous',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(color: Colors.black),
-                            ),
-                          ),
-                        ),
+//                         const SizedBox(height: 24),
 
-                      if (_currentQuestionIndex > 0) const SizedBox(width: 16),
+//                         // Options
+//                         ...currentQuestion.options!.asMap().entries.map((entry) {
+//                           final index = entry.key;
+//                           final option = entry.value;
+//                           return _buildOptionCard(
+//                             option,
+//                             String.fromCharCode(65 + index),
+//                             navigationState.selectedOption,
+//                             context,
+//                           );
+//                         }).toList(),
 
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed:
-                              _selectedOption != null ? _nextQuestion : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Text(
-                            _currentQuestionIndex == widget.questions.length - 1
-                                ? 'Submit Interview'
-                                : 'Next Question',
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
+//                         const SizedBox(height: 100), // Space for navigation buttons
+//                       ],
+//                     ),
+//                   ),
+//                 ),
 
-  Widget _buildOptionCard(int index, String option) {
-    final isSelected = _selectedOption == option;
+//                 // Navigation Buttons
+//                 Container(
+//                   padding: const EdgeInsets.all(16),
+//                   decoration: BoxDecoration(
+//                     color: Theme.of(context).colorScheme.surface,
+//                     border: Border(
+//                       top: BorderSide(
+//                         color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+//                       ),
+//                     ),
+//                   ),
+//                   child: SafeArea(
+//                     child: Row(
+//                       children: [
+//                         if (navigationState.currentQuestionIndex > 0)
+//                           Expanded(
+//                             child: OutlinedButton(
+//                               onPressed: () {
+//                                 context.read<McqNavigationBloc>().add(NavigateToPrevious());
+//                               },
+//                               style: OutlinedButton.styleFrom(
+//                                 padding: const EdgeInsets.symmetric(vertical: 12),
+//                                 side: BorderSide(
+//                                   color: Theme.of(context).colorScheme.outline,
+//                                 ),
+//                                 shape: RoundedRectangleBorder(
+//                                   borderRadius: BorderRadius.circular(12),
+//                                 ),
+//                               ),
+//                               child: Row(
+//                                 mainAxisAlignment: MainAxisAlignment.center,
+//                                 children: [
+//                                   Icon(
+//                                     Icons.arrow_back_ios,
+//                                     size: 16,
+//                                     color: Theme.of(context).colorScheme.onSurface,
+//                                   ),
+//                                   const SizedBox(width: 4),
+//                                   Text(
+//                                     'Previous',
+//                                     style: TextStyle(
+//                                       color: Theme.of(context).colorScheme.onSurface,
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+//                           )
+//                         else
+//                           const Spacer(),
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedOption = option;
-          });
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.grey.shade50 : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? Colors.black : Colors.grey.shade300,
-              width: 2,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? Colors.black : Colors.white,
-                  border: Border.all(
-                    color: isSelected ? Colors.black : Colors.grey.shade300,
-                    width: 2,
-                  ),
-                ),
-                child:
-                    isSelected
-                        ? const Icon(Icons.check, size: 16, color: Colors.white)
-                        : null,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  option,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isSelected ? Colors.black : Colors.grey.shade700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+//                         const SizedBox(width: 12),
 
-  void _previousQuestion() {
-    if (_currentQuestionIndex > 0) {
-      setState(() {
-        _currentQuestionIndex--;
-        _selectedOption =
-            _answers[_currentQuestionIndex].isNotEmpty
-                ? _answers[_currentQuestionIndex]
-                : null;
-      });
-    }
-  }
+//                         Expanded(
+//                           child: Container(
+//                             decoration: BoxDecoration(
+//                               gradient: LinearGradient(
+//                                 colors: [
+//                                   Theme.of(context).colorScheme.primary,
+//                                   Theme.of(context).colorScheme.primary.withOpacity(0.8),
+//                                 ],
+//                               ),
+//                               borderRadius: BorderRadius.circular(12),
+//                               boxShadow: [
+//                                 BoxShadow(
+//                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+//                                   blurRadius: 8,
+//                                   offset: const Offset(0, 2),
+//                                 ),
+//                               ],
+//                             ),
+//                             child: ElevatedButton(
+//                               onPressed: navigationState.selectedOption != null
+//                                   ? () {
+//                                       if (navigationState.currentQuestionIndex == widget.questions.length - 1) {
+//                                         _submitAnswers();
+//                                       } else {
+//                                         context.read<McqNavigationBloc>().add(NavigateToNext());
+//                                       }
+//                                     }
+//                                   : null,
+//                               style: ElevatedButton.styleFrom(
+//                                 backgroundColor: Colors.transparent,
+//                                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
+//                                 shadowColor: Colors.transparent,
+//                                 padding: const EdgeInsets.symmetric(vertical: 12),
+//                                 shape: RoundedRectangleBorder(
+//                                   borderRadius: BorderRadius.circular(12),
+//                                 ),
+//                               ),
+//                               child: Row(
+//                                 mainAxisAlignment: MainAxisAlignment.center,
+//                                 children: [
+//                                   Text(
+//                                     navigationState.currentQuestionIndex == widget.questions.length - 1
+//                                         ? 'Submit'
+//                                         : 'Next',
+//                                     style: TextStyle(
+//                                       color: Theme.of(context).colorScheme.onPrimary,
+//                                       fontWeight: FontWeight.w600,
+//                                     ),
+//                                   ),
+//                                   const SizedBox(width: 4),
+//                                   Icon(
+//                                     navigationState.currentQuestionIndex == widget.questions.length - 1
+//                                         ? Icons.check
+//                                         : Icons.arrow_forward_ios,
+//                                     size: 16,
+//                                     color: Theme.of(context).colorScheme.onPrimary,
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             );
+//           },
+//         ),
+//       ),
+//     );
+//   }
 
-  void _nextQuestion() {
-    if (_selectedOption != null) {
-      _answers[_currentQuestionIndex] = _selectedOption.toString();
+//   Widget _buildOptionCard(String option, String label, String? selectedAnswer, BuildContext context) {
+//     final isSelected = selectedAnswer == option;
 
-      if (_currentQuestionIndex < widget.questions.length - 1) {
-        setState(() {
-          _currentQuestionIndex++;
-          _selectedOption =
-              _answers[_currentQuestionIndex].isNotEmpty
-                  ? _answers[_currentQuestionIndex]
-                  : null;
-        });
-      } else {
-        _submitAnswers();
-      }
-    }
-  }
+//     return Container(
+//       margin: const EdgeInsets.only(bottom: 10),
+//       child: InkWell(
+//         onTap: () {
+//           context.read<McqNavigationBloc>().add(SelectOption(option));
+//         },
+//         borderRadius: BorderRadius.circular(12),
+//         child: Container(
+//           padding: const EdgeInsets.all(16),
+//           decoration: BoxDecoration(
+//             gradient: isSelected
+//                 ? LinearGradient(
+//                     colors: [
+//                       Theme.of(context).colorScheme.primary.withOpacity(0.1),
+//                       Theme.of(context).colorScheme.primary.withOpacity(0.05),
+//                     ],
+//                   )
+//                 : null,
+//             color: isSelected ? null : Theme.of(context).colorScheme.surface,
+//             borderRadius: BorderRadius.circular(12),
+//             border: Border.all(
+//               color: isSelected
+//                   ? Theme.of(context).colorScheme.primary
+//                   : Theme.of(context).colorScheme.outline.withOpacity(0.2),
+//               width: isSelected ? 2 : 1,
+//             ),
+//             boxShadow: isSelected
+//                 ? [
+//                     BoxShadow(
+//                       color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+//                       blurRadius: 8,
+//                       offset: const Offset(0, 2),
+//                     ),
+//                   ]
+//                 : [
+//                     BoxShadow(
+//                       color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+//                       blurRadius: 4,
+//                       offset: const Offset(0, 1),
+//                     ),
+//                   ],
+//           ),
+//           child: Row(
+//             children: [
+//               Container(
+//                 width: 28,
+//                 height: 28,
+//                 decoration: BoxDecoration(
+//                   color: isSelected
+//                       ? Theme.of(context).colorScheme.primary
+//                       : Theme.of(context).colorScheme.surfaceVariant,
+//                   shape: BoxShape.circle,
+//                   border: Border.all(
+//                     color: isSelected
+//                         ? Theme.of(context).colorScheme.primary
+//                         : Theme.of(context).colorScheme.outline.withOpacity(0.4),
+//                   ),
+//                 ),
+//                 child: Center(
+//                   child: Text(
+//                     label,
+//                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
+//                       color: isSelected
+//                           ? Theme.of(context).colorScheme.onPrimary
+//                           : Theme.of(context).colorScheme.onSurfaceVariant,
+//                       fontWeight: FontWeight.w600,
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               const SizedBox(width: 16),
+//               Expanded(
+//                 child: Text(
+//                   option,
+//                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+//                     color: isSelected
+//                         ? Theme.of(context).colorScheme.onSurface
+//                         : Theme.of(context).colorScheme.onSurfaceVariant,
+//                     fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+//                   ),
+//                 ),
+//               ),
+//               if (isSelected)
+//                 Container(
+//                   padding: const EdgeInsets.all(4),
+//                   decoration: BoxDecoration(
+//                     color: Theme.of(context).colorScheme.primary,
+//                     shape: BoxShape.circle,
+//                   ),
+//                   child: Icon(
+//                     Icons.check,
+//                     size: 16,
+//                     color: Theme.of(context).colorScheme.onPrimary,
+//                   ),
+//                 ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
 
-  void _submitAnswers() {
-    if (_selectedOption != null) {
-      _answers[_currentQuestionIndex] = _selectedOption.toString();
-    }
-
-    context.read<McqInterviewBloc>().add(
-      SubmitAnswersEvent(
-        sessionId: widget.sessionId,
-        userId: 'user_123', // Mock user ID
-        answers: _answers,
-        jobRole: '',
-        difficultyLevel: 'easy',
-        category: 'technical',
-      ),
-    );
-  }
-}
+//   void _submitAnswers() {
+//     final navigationState = context.read<McqNavigationBloc>().state;
+//     if (navigationState is McqNavigationReady) {
+//       context.read<McqInterviewBloc>().add(
+//         SubmitAnswersEvent(
+//           sessionId: widget.sessionId,
+//           userId: widget.userId,
+//           answers: navigationState.answers,
+//           jobRole: widget.jobRole,
+//           difficultyLevel: widget.difficultyLevel,
+//           category: widget.category,
+//         ),
+//       );
+//     }
+//   }
+// }

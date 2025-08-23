@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../../core/theme/colorpalette/light_theme.dart';
 
 enum InterviewButtonType { primary, secondary }
 
@@ -23,17 +22,17 @@ class InterviewButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 64,
+      height: 74,
       margin: const EdgeInsets.only(bottom: 16),
       child:
           type == InterviewButtonType.primary
-              ? PrimaryInterviewButton(
+              ? _PrimaryInterviewButton(
                 title: title,
                 subtitle: subtitle,
                 icon: icon,
                 onPressed: onPressed,
               )
-              : SecondaryInterviewButton(
+              : _SecondaryInterviewButton(
                 title: title,
                 subtitle: subtitle,
                 icon: icon,
@@ -43,14 +42,13 @@ class InterviewButton extends StatelessWidget {
   }
 }
 
-class PrimaryInterviewButton extends StatelessWidget {
+class _PrimaryInterviewButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback? onPressed;
 
-  const PrimaryInterviewButton({
-    super.key,
+  const _PrimaryInterviewButton({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -64,58 +62,61 @@ class PrimaryInterviewButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        elevation: 8,
+        shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.all(16),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [theme.colorScheme.primary, LightThemePalette.gray900],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.onSurface.withOpacity(0.15),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onPrimary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(22),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              InterviewButtonIcon(
-                icon: icon,
-                backgroundColor: Colors.white.withOpacity(0.1),
-                iconColor: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              InterviewButtonText(
-                title: title,
-                subtitle: subtitle,
-                titleColor: Colors.white,
-                subtitleColor: LightThemePalette.gray100,
-              ),
-            ],
+            child: Icon(icon, color: theme.colorScheme.onPrimary, size: 22),
           ),
-        ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class SecondaryInterviewButton extends StatelessWidget {
+class _SecondaryInterviewButton extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback? onPressed;
 
-  const SecondaryInterviewButton({
-    super.key,
+  const _SecondaryInterviewButton({
     required this.title,
     required this.subtitle,
     required this.icon,
@@ -129,93 +130,53 @@ class SecondaryInterviewButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        backgroundColor: theme.colorScheme.surface,
-        side: BorderSide(color: theme.dividerColor, width: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        side: BorderSide(
+          color: theme.colorScheme.primary.withOpacity(0.3),
+          width: 1.5,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.all(16),
+        elevation: 4,
         shadowColor: theme.colorScheme.onSurface.withOpacity(0.1),
-        elevation: 8,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          InterviewButtonIcon(
-            icon: icon,
-            backgroundColor: theme.colorScheme.onPrimary,
-            iconColor: LightThemePalette.gray700,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 22),
           ),
-          const SizedBox(width: 12),
-          InterviewButtonText(
-            title: title,
-            subtitle: subtitle,
-            titleColor: theme.colorScheme.primary,
-            subtitleColor: theme.colorScheme.onSurface,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class InterviewButtonIcon extends StatelessWidget {
-  final IconData icon;
-  final Color backgroundColor;
-  final Color iconColor;
-
-  const InterviewButtonIcon({
-    super.key,
-    required this.icon,
-    required this.backgroundColor,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Icon(icon, color: iconColor, size: 20),
-    );
-  }
-}
-
-class InterviewButtonText extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color titleColor;
-  final Color subtitleColor;
-
-  const InterviewButtonText({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.titleColor,
-    required this.subtitleColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: titleColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(color: subtitleColor),
-        ),
-      ],
     );
   }
 }

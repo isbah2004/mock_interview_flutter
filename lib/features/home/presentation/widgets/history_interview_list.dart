@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'history_interview_card.dart';
+import 'package:mock_interview/features/home/presentation/widgets/history_interview_card.dart';
 
 class HistoryInterviewList extends StatelessWidget {
   final List<Map<String, dynamic>> interviewHistory;

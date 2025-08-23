@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colorpalette/light_theme.dart';
+import 'package:mock_interview/core/theme/colorpalette/app_colors.dart';
+import 'package:mock_interview/features/home/presentation/widgets/stat_card.dart';
 import '../../../../core/constants/app_strings.dart';
-import 'stat_card.dart';
 
 class StatsGrid extends StatelessWidget {
-
-  const StatsGrid({super.key, });
+  const StatsGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final isDark = theme.brightness == Brightness.dark;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -18,43 +17,39 @@ class StatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1,
+      childAspectRatio: 0.95,
       children: [
         StatCard(
           title: AppStrings.totalInterviews,
           value: '0',
-          icon: Icons.calendar_today,
-          gradientColors: [
-            theme.colorScheme.primary,
-            LightThemePalette.gray700,
-          ],
+          icon: Icons.calendar_today_rounded,
+          gradientColors:
+              isDark ? AppColors.darkGradient : AppColors.lightGradient,
+          accentColor: AppColors.primaryPurple,
         ),
         StatCard(
           title: AppStrings.averageScore,
-          value:  '0.0',
-          icon: Icons.emoji_events,
-          gradientColors: [
-            LightThemePalette.gray700,
-            LightThemePalette.gray600,
-          ],
+          value: '0.0',
+          icon: Icons.emoji_events_rounded,
+          gradientColors:
+              isDark ? AppColors.darkGradient : AppColors.lightGradient,
+          accentColor: AppColors.success,
         ),
         StatCard(
           title: AppStrings.voiceInterviews,
-          value:  '0',
-          icon: Icons.mic,
-          gradientColors: [
-            LightThemePalette.gray600,
-            LightThemePalette.gray500,
-          ],
+          value: '0',
+          icon: Icons.mic_rounded,
+          gradientColors:
+              isDark ? AppColors.darkGradient : AppColors.lightGradient,
+          accentColor: AppColors.info,
         ),
         StatCard(
           title: AppStrings.mcqInterviews,
           value: '0',
-          icon: Icons.book,
-          gradientColors: [
-            LightThemePalette.gray500,
-            LightThemePalette.gray400,
-          ],
+          icon: Icons.quiz_rounded,
+          gradientColors:
+              isDark ? AppColors.darkGradient : AppColors.lightGradient,
+          accentColor: AppColors.warning,
         ),
       ],
     );

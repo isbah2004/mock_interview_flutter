@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:mock_interview/core/entities/performance_summary.dart';
-import 'package:mock_interview/core/entities/question.dart';
 import 'package:mock_interview/features/mcqinterviews/data/models/question_model.dart';
 
 class InterviewSession extends Equatable {

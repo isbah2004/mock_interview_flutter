@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colorpalette/light_theme.dart';
 
 class GradientBackground extends StatelessWidget {
   final Widget child;
   final List<Color>? colors;
+  final bool subtle;
 
-  const GradientBackground({super.key, required this.child, this.colors});
+  const GradientBackground({
+    super.key,
+    required this.child,
+    this.colors,
+    this.subtle = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +21,15 @@ class GradientBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors:
-              colors ??
-              [
-                LightThemePalette.gray100,
-                theme.colorScheme.surface,
-                LightThemePalette.gray100,
-              ],
+          colors: colors ?? (subtle ? [
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceContainerLowest,
+            theme.colorScheme.surface,
+          ] : [
+            theme.colorScheme.primary.withOpacity(0.05),
+            theme.colorScheme.surface,
+            theme.colorScheme.primary.withOpacity(0.02),
+          ]),
         ),
       ),
       child: child,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'history_stat_card.dart';
-import '../../../../../core/theme/colorpalette/light_theme.dart';
+import 'package:mock_interview/features/home/presentation/widgets/history_stat_card.dart';
 
 class HistoryHeader extends StatelessWidget {
   const HistoryHeader({super.key});
@@ -15,7 +14,7 @@ class HistoryHeader extends StatelessWidget {
         children: [
           Text(
             'Interview History',
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
             ),
@@ -39,11 +38,8 @@ class HistoryStatsGrid extends StatelessWidget {
           child: HistoryStatCard(
             value: '87',
             label: 'Avg Score',
-            icon: Icons.emoji_events,
-            gradientColors: [
-              LightThemePalette.gray700,
-              LightThemePalette.gray900,
-            ],
+            icon: Icons.emoji_events_rounded,
+            isPrimary: true,
           ),
         ),
         const SizedBox(width: 12),
@@ -51,11 +47,7 @@ class HistoryStatsGrid extends StatelessWidget {
           child: HistoryStatCard(
             value: '5',
             label: 'Total',
-            icon: Icons.calendar_today,
-            gradientColors: [
-              LightThemePalette.gray600,
-              LightThemePalette.gray700,
-            ],
+            icon: Icons.calendar_today_rounded,
           ),
         ),
         const SizedBox(width: 12),
@@ -63,11 +55,7 @@ class HistoryStatsGrid extends StatelessWidget {
           child: HistoryStatCard(
             value: '+12%',
             label: 'Growth',
-            icon: Icons.trending_up,
-            gradientColors: [
-              LightThemePalette.gray500,
-              LightThemePalette.gray600,
-            ],
+            icon: Icons.trending_up_rounded,
           ),
         ),
       ],
