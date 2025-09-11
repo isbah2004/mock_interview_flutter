@@ -4,7 +4,7 @@ import 'package:mock_interview/core/errors/failures.dart';
 
 abstract class HomeRemoteDataSource {
   Future getUserStats(String userId);
-  Future<void> updateUserStats(String userId );
+  Future<void> updateUserStats(String userId);
 }
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
@@ -17,12 +17,8 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   Future getUserStats(String userId) async {
     try {
       // Get interview sessions for this user to calculate stats
- 
 
-      
-
-
-      return ;
+      return;
     } on AppwriteException catch (e) {
       throw ServerFailure(e.message ?? 'Failed to get user stats');
     } catch (e) {
@@ -50,5 +46,4 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       throw ServerFailure('Unknown error occurred while updating user stats');
     }
   }
-
 }

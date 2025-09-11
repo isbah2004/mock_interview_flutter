@@ -9,13 +9,13 @@ class InterviewSessionModel extends InterviewSession {
     required super.difficulty,
     required super.category,
     required super.totalQuestions,
-     super.timePerQuestion,
-     super.questions,
+    super.timePerQuestion,
+    super.questions,
     super.score,
     super.percentage,
-     super.isCompleted,
+    super.isCompleted,
     super.passed,
-     super.startedAt,
+    super.startedAt,
     super.completedAt,
     super.duration,
     super.performanceSummary,
@@ -66,7 +66,7 @@ class InterviewSessionModel extends InterviewSession {
   factory InterviewSessionModel.fromAIResponse(Map<String, dynamic> json) {
     return InterviewSessionModel(
       sessionId: json['session_id'] ?? '',
-      
+
       jobRole: json['job_role'] ?? '',
       difficulty: json['difficulty'],
       category: json['category'],
@@ -77,14 +77,12 @@ class InterviewSessionModel extends InterviewSession {
                   .map((q) => QuestionModel.fromAIResponse(q))
                   .toList()
               : [],
-
     );
   }
 
   factory InterviewSessionModel.fromAppwrite(Map<String, dynamic> document) {
     return InterviewSessionModel(
- 
-      sessionId: document['\$id'] ?? '',
+      sessionId: document['sessionId'] ?? document['\$id'] ?? '',
       userId: document['userId'] ?? '',
       jobRole: document['jobRole'] ?? '',
       difficulty: document['difficulty'],
@@ -105,10 +103,9 @@ class InterviewSessionModel extends InterviewSession {
     );
   }
 
-  Map<String, dynamic> toAppwrite( id) {
+  Map<String, dynamic> toAppwrite(id) {
     return {
       'userId': id,
-      'sessionId': sessionId,
       'jobRole': jobRole,
       'difficulty': difficulty,
       'category': category,

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:mock_interview/core/services/flutter_speech_service.dart';
+
 class HandleSpeechUseCase {
   final SpeechService _speechService;
 
@@ -22,5 +23,17 @@ class HandleSpeechUseCase {
 
   Future<void> speak(String text, {VoidCallback? onComplete}) async {
     await _speechService.speak(text, onComplete: onComplete);
+  }
+
+  Future<void> pauseSpeaking() async {
+    await _speechService.pauseSpeaking();
+  }
+
+  Future<void> resumeSpeaking() async {
+    await _speechService.resumeSpeaking();
+  }
+
+  Future<void> stopSpeaking() async {
+    await _speechService.stopSpeaking();
   }
 }

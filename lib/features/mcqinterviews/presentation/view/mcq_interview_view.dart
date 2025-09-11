@@ -1,542 +1,592 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:mock_interview/core/entities/question.dart';
-// import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview/mcq_interview_event.dart';
-// import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq_interview/mcq_interview_state.dart';
-// import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_state.dart';
-// import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_result_view.dart';
-// import '../bloc/mcq_interview/mcq_interview_bloc.dart';
-// import '../bloc/mcq_navigation/mcq_navigation_bloc.dart';
-// import '../bloc/mcq_navigation/mcq_navigation_event.dart';
-// import '../bloc/mcq_navigation/mcq_navigation_state.dart';
-// import '../cubit/timer_cubit.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mock_interview/core/models/mcq_question_model.dart';
+import 'package:mock_interview/features/mcqinterviews/data/models/evaluation_result_model.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
+import '../bloc/unified_mcq_interview_bloc.dart';
+import '../bloc/unified_mcq_interview_event.dart';
+import '../bloc/unified_mcq_interview_state.dart';
+import 'mcq_result_view.dart';
 
-// class McqInterviewView extends StatelessWidget {
-//   final String sessionId;
-//   final List<Question> questions;
-//   final String userId;
-//   final String jobRole;
-//   final String difficultyLevel;
-//   final String category;
+class McqInterviewView extends StatelessWidget {
+  final List<McqQuestionModel> questions;
+  final String jobTitle;
 
-//   const McqInterviewView({
-//     super.key,
-//     required this.sessionId,
-//     required this.questions,
-//     required this.userId,
-//     required this.jobRole,
-//     required this.difficultyLevel,
-//     required this.category,
-//   });
+  const McqInterviewView({
+    super.key,
+    required this.questions,
+    required this.jobTitle,
+  });
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return MultiBlocProvider(
-//       providers: [
-//         BlocProvider(
-//           create: (context) => McqNavigationBloc()..add(InitializeNavigation(questions.length)),
-//         ),
-//       ],
-//       child: McqInterviewContent(
-//         sessionId: sessionId,
-//         questions: questions,
-//         userId: userId,
-//         jobRole: jobRole,
-//         difficultyLevel: difficultyLevel,
-//         category: category,
-//       ),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return McqInterviewContent(questions: questions, jobTitle: jobTitle);
+  }
+}
 
-// class McqInterviewContent extends StatefulWidget {
-//   final String sessionId;
-//   final List<Question> questions;
-//   final String userId;
-//   final String jobRole;
-//   final String difficultyLevel;
-//   final String category;
+class McqInterviewContent extends StatefulWidget {
+  final List<McqQuestionModel> questions;
+  final String jobTitle;
 
-//   const McqInterviewContent({
-//     super.key,
-//     required this.sessionId,
-//     required this.questions,
-//     required this.userId,
-//     required this.jobRole,
-//     required this.difficultyLevel,
-//     required this.category,
-//   });
+  const McqInterviewContent({
+    super.key,
+    required this.questions,
+    required this.jobTitle,
+  });
 
-//   @override
-//   State<McqInterviewContent> createState() => _McqInterviewContentState();
-// }
+  @override
+  State<McqInterviewContent> createState() => _McqInterviewContentState();
+}
 
-// class _McqInterviewContentState extends State<McqInterviewContent> {
-//   @override
-//   void initState() {
-//     super.initState();
-//     // Start timer for 30 minutes (1800 seconds)
-//     context.read<TimerCubit>().startTimer();
-//   }
+class _McqInterviewContentState extends State<McqInterviewContent>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         backgroundColor: Theme.of(context).colorScheme.surface,
-//         title: Text(
-//           'MCQ Interview',
-//           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-//             color: Theme.of(context).colorScheme.onSurface,
-//             fontWeight: FontWeight.w600,
-//           ),
-//         ),
-//         centerTitle: true,
-//         elevation: 0,
-//         surfaceTintColor: Colors.transparent,
-//         actions: [
-//           BlocBuilder<TimerCubit, TimerState>(
-//             builder: (context, state) {
-//               if (state.isRunning) {
-//                 final minutes = state.timeRemaining ~/ 60;
-//                 final seconds = state.timeRemaining % 60;
-//                 return Container(
-//                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-//                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-//                   decoration: BoxDecoration(
-//                     color: state.timeRemaining <= 300
-//                         ? Theme.of(context).colorScheme.error.withOpacity(0.1)
-//                         : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-//                     borderRadius: BorderRadius.circular(20),
-//                     border: Border.all(
-//                       color: state.timeRemaining <= 300
-//                           ? Theme.of(context).colorScheme.error
-//                           : Theme.of(context).colorScheme.primary,
-//                     ),
-//                   ),
-//                   child: Row(
-//                     mainAxisSize: MainAxisSize.min,
-//                     children: [
-//                       Icon(
-//                         Icons.timer_outlined,
-//                         size: 16,
-//                         color: state.timeRemaining <= 300
-//                             ? Theme.of(context).colorScheme.error
-//                             : Theme.of(context).colorScheme.primary,
-//                       ),
-//                       const SizedBox(width: 4),
-//                       Text(
-//                         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-//                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-//                           color: state.timeRemaining <= 300
-//                               ? Theme.of(context).colorScheme.error
-//                               : Theme.of(context).colorScheme.primary,
-//                           fontWeight: FontWeight.w600,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 );
-//               } else if (state.isFinished) {
-//                 WidgetsBinding.instance.addPostFrameCallback((_) {
-//                   _submitAnswers();
-//                 });
-//               }
-//               return const SizedBox.shrink();
-//             },
-//           ),
-//         ],
-//       ),
-//       backgroundColor: Theme.of(context).colorScheme.background,
-//       body: BlocListener<McqInterviewBloc, McqInterviewState>(
-//         listener: (context, state) {
-//           if (state is InterviewCompleted) {
-//             Navigator.of(context).pushReplacement(
-//               MaterialPageRoute(
-//                 builder: (context) => McqResultView(
-//                   evaluationResult: state.evaluationResult,
-//                 ),
-//               ),
-//             );
-//           } else if (state is InterviewError) {
-//             ScaffoldMessenger.of(context).showSnackBar(
-//               SnackBar(
-//                 content: Text(state.message),
-//                 backgroundColor: Theme.of(context).colorScheme.error,
-//               ),
-//             );
-//           }
-//         },
-//         child: BlocBuilder<McqNavigationBloc, McqNavigationState>(
-//           builder: (context, navigationState) {
-//             if (navigationState is! McqNavigationReady) {
-//               return const Center(child: CircularProgressIndicator());
-//             }
+  @override
+  void initState() {
+    super.initState();
 
-//             final currentQuestion = widget.questions[navigationState.currentQuestionIndex];
+    // Initialize pulse animation for loading state
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
-//             return Column(
-//               children: [
-//                 // Progress Bar
-//                 Container(
-//                   margin: const EdgeInsets.all(16),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Row(
-//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           Text(
-//                             'Question ${navigationState.currentQuestionIndex + 1} of ${widget.questions.length}',
-//                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-//                               color: Theme.of(context).colorScheme.onSurfaceVariant,
-//                               fontWeight: FontWeight.w500,
-//                             ),
-//                           ),
-//                           Text(
-//                             '${((navigationState.currentQuestionIndex + 1) / widget.questions.length * 100).round()}%',
-//                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-//                               color: Theme.of(context).colorScheme.primary,
-//                               fontWeight: FontWeight.w600,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       const SizedBox(height: 8),
-//                       LinearProgressIndicator(
-//                         value: (navigationState.currentQuestionIndex + 1) / widget.questions.length,
-//                         backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-//                         valueColor: AlwaysStoppedAnimation<Color>(
-//                           Theme.of(context).colorScheme.primary,
-//                         ),
-//                         minHeight: 6,
-//                       ),
-//                     ],
-//                   ),
-//                 ),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        context.read<McqInterviewBloc>().add(
+          StartMcqInterview(widget.questions),
+        );
+      } catch (_) {
+        // Bloc configuration issue handling
+      }
+    });
+  }
 
-//                 // Question Content
-//                 Expanded(
-//                   child: SingleChildScrollView(
-//                     padding: const EdgeInsets.symmetric(horizontal: 16),
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Container(
-//                           width: double.infinity,
-//                           padding: const EdgeInsets.all(20),
-//                           decoration: BoxDecoration(
-//                             color: Theme.of(context).colorScheme.surface,
-//                             borderRadius: BorderRadius.circular(16),
-//                             border: Border.all(
-//                               color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-//                             ),
-//                             boxShadow: [
-//                               BoxShadow(
-//                                 color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
-//                                 blurRadius: 10,
-//                                 offset: const Offset(0, 2),
-//                               ),
-//                             ],
-//                           ),
-//                           child: Column(
-//                             crossAxisAlignment: CrossAxisAlignment.start,
-//                             children: [
-//                               Container(
-//                                 padding: const EdgeInsets.symmetric(
-//                                   horizontal: 8,
-//                                   vertical: 4,
-//                                 ),
-//                                 decoration: BoxDecoration(
-//                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-//                                   borderRadius: BorderRadius.circular(6),
-//                                 ),
-//                                 child: Text(
-//                                   currentQuestion.category.toUpperCase(),
-//                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-//                                     color: Theme.of(context).colorScheme.primary,
-//                                     fontWeight: FontWeight.w600,
-//                                   ),
-//                                 ),
-//                               ),
-//                               const SizedBox(height: 16),
-//                               Text(
-//                                 currentQuestion.questionText,
-//                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-//                                   color: Theme.of(context).colorScheme.onSurface,
-//                                   fontWeight: FontWeight.w600,
-//                                   height: 1.3,
-//                                 ),
-//                               ),
-//                             ],
-//                           ),
-//                         ),
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
-//                         const SizedBox(height: 24),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'MCQ Interview',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+      ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: BlocListener<McqInterviewBloc, UnifiedMcqInterviewState>(
+        listener: (context, state) {
+          if (state is McqInterviewCompletedState) {
+            // Add a small delay to ensure the loading state is visible
+            Future.delayed(const Duration(milliseconds: 500), () {
+              final results =
+                  state.questions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final question = entry.value;
+                    final userAnswer =
+                        index < state.answers.length
+                            ? state.answers[index]
+                            : '';
+                    final isCorrect = userAnswer == question.correctAnswer;
 
-//                         // Options
-//                         ...currentQuestion.options!.asMap().entries.map((entry) {
-//                           final index = entry.key;
-//                           final option = entry.value;
-//                           return _buildOptionCard(
-//                             option,
-//                             String.fromCharCode(65 + index),
-//                             navigationState.selectedOption,
-//                             context,
-//                           );
-//                         }).toList(),
+                    return QuestionResultModel(
+                      questionId: question.questionId,
+                      questionNumber: index + 1,
+                      question: question.question,
+                      correctAnswer: question.correctAnswer,
+                      userAnswer: userAnswer,
+                      isCorrect: isCorrect,
+                      score: isCorrect ? 1 : 0,
+                      explanation: question.explanation,
+                      topic: question.topic,
+                      difficulty: question.difficulty,
+                    );
+                  }).toList();
 
-//                         const SizedBox(height: 100), // Space for navigation buttons
-//                       ],
-//                     ),
-//                   ),
-//                 ),
+              final evaluationResult = EvaluationResultModel(
+                sessionId: state.questions.first.sessionId,
+                totalQuestions: state.totalQuestions,
+                finalScore: state.score,
+                percentage: state.score,
+                passed: state.score >= 60.0,
+                results: results,
+                sessionComplete: true,
+                completedAt: DateTime.now(),
+              );
 
-//                 // Navigation Buttons
-//                 Container(
-//                   padding: const EdgeInsets.all(16),
-//                   decoration: BoxDecoration(
-//                     color: Theme.of(context).colorScheme.surface,
-//                     border: Border(
-//                       top: BorderSide(
-//                         color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-//                       ),
-//                     ),
-//                   ),
-//                   child: SafeArea(
-//                     child: Row(
-//                       children: [
-//                         if (navigationState.currentQuestionIndex > 0)
-//                           Expanded(
-//                             child: OutlinedButton(
-//                               onPressed: () {
-//                                 context.read<McqNavigationBloc>().add(NavigateToPrevious());
-//                               },
-//                               style: OutlinedButton.styleFrom(
-//                                 padding: const EdgeInsets.symmetric(vertical: 12),
-//                                 side: BorderSide(
-//                                   color: Theme.of(context).colorScheme.outline,
-//                                 ),
-//                                 shape: RoundedRectangleBorder(
-//                                   borderRadius: BorderRadius.circular(12),
-//                                 ),
-//                               ),
-//                               child: Row(
-//                                 mainAxisAlignment: MainAxisAlignment.center,
-//                                 children: [
-//                                   Icon(
-//                                     Icons.arrow_back_ios,
-//                                     size: 16,
-//                                     color: Theme.of(context).colorScheme.onSurface,
-//                                   ),
-//                                   const SizedBox(width: 4),
-//                                   Text(
-//                                     'Previous',
-//                                     style: TextStyle(
-//                                       color: Theme.of(context).colorScheme.onSurface,
-//                                     ),
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
-//                           )
-//                         else
-//                           const Spacer(),
+              if (mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder:
+                        (context, animation, secondaryAnimation) =>
+                            McqResultView(evaluationResult: evaluationResult),
+                    transitionsBuilder: (
+                      context,
+                      animation,
+                      secondaryAnimation,
+                      child,
+                    ) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 300,
+                    ),
+                  ),
+                );
+              }
+            });
+          }
+        },
+        child: BlocBuilder<McqInterviewBloc, UnifiedMcqInterviewState>(
+          builder: (context, state) {
+            // Stop pulse animation when not in saving state
+            if (state is! SavingInterviewResultState) {
+              _pulseController.stop();
+            }
 
-//                         const SizedBox(width: 12),
+            if (state is McqInterviewInProgressState) {
+              return _buildInterviewContent(context, state);
+            } else if (state is SavingInterviewResultState) {
+              return _buildSavingContent(context, state);
+            } else if (state is McqInterviewErrorState) {
+              return _buildErrorContent(context, state.error);
+            } else {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
 
-//                         Expanded(
-//                           child: Container(
-//                             decoration: BoxDecoration(
-//                               gradient: LinearGradient(
-//                                 colors: [
-//                                   Theme.of(context).colorScheme.primary,
-//                                   Theme.of(context).colorScheme.primary.withOpacity(0.8),
-//                                 ],
-//                               ),
-//                               borderRadius: BorderRadius.circular(12),
-//                               boxShadow: [
-//                                 BoxShadow(
-//                                   color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-//                                   blurRadius: 8,
-//                                   offset: const Offset(0, 2),
-//                                 ),
-//                               ],
-//                             ),
-//                             child: ElevatedButton(
-//                               onPressed: navigationState.selectedOption != null
-//                                   ? () {
-//                                       if (navigationState.currentQuestionIndex == widget.questions.length - 1) {
-//                                         _submitAnswers();
-//                                       } else {
-//                                         context.read<McqNavigationBloc>().add(NavigateToNext());
-//                                       }
-//                                     }
-//                                   : null,
-//                               style: ElevatedButton.styleFrom(
-//                                 backgroundColor: Colors.transparent,
-//                                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-//                                 shadowColor: Colors.transparent,
-//                                 padding: const EdgeInsets.symmetric(vertical: 12),
-//                                 shape: RoundedRectangleBorder(
-//                                   borderRadius: BorderRadius.circular(12),
-//                                 ),
-//                               ),
-//                               child: Row(
-//                                 mainAxisAlignment: MainAxisAlignment.center,
-//                                 children: [
-//                                   Text(
-//                                     navigationState.currentQuestionIndex == widget.questions.length - 1
-//                                         ? 'Submit'
-//                                         : 'Next',
-//                                     style: TextStyle(
-//                                       color: Theme.of(context).colorScheme.onPrimary,
-//                                       fontWeight: FontWeight.w600,
-//                                     ),
-//                                   ),
-//                                   const SizedBox(width: 4),
-//                                   Icon(
-//                                     navigationState.currentQuestionIndex == widget.questions.length - 1
-//                                         ? Icons.check
-//                                         : Icons.arrow_forward_ios,
-//                                     size: 16,
-//                                     color: Theme.of(context).colorScheme.onPrimary,
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             );
-//           },
-//         ),
-//       ),
-//     );
-//   }
+  Widget _buildInterviewContent(
+    BuildContext context,
+    McqInterviewInProgressState state,
+  ) {
+    final currentQuestion = state.currentQuestion;
+    final progress = (state.currentQuestionIndex + 1) / state.questions.length;
 
-//   Widget _buildOptionCard(String option, String label, String? selectedAnswer, BuildContext context) {
-//     final isSelected = selectedAnswer == option;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Theme.of(context).colorScheme.surface,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Question ${state.currentQuestionIndex + 1} of ${state.questions.length}',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.outline.withOpacityCompat(0.3),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
 
-//     return Container(
-//       margin: const EdgeInsets.only(bottom: 10),
-//       child: InkWell(
-//         onTap: () {
-//           context.read<McqNavigationBloc>().add(SelectOption(option));
-//         },
-//         borderRadius: BorderRadius.circular(12),
-//         child: Container(
-//           padding: const EdgeInsets.all(16),
-//           decoration: BoxDecoration(
-//             gradient: isSelected
-//                 ? LinearGradient(
-//                     colors: [
-//                       Theme.of(context).colorScheme.primary.withOpacity(0.1),
-//                       Theme.of(context).colorScheme.primary.withOpacity(0.05),
-//                     ],
-//                   )
-//                 : null,
-//             color: isSelected ? null : Theme.of(context).colorScheme.surface,
-//             borderRadius: BorderRadius.circular(12),
-//             border: Border.all(
-//               color: isSelected
-//                   ? Theme.of(context).colorScheme.primary
-//                   : Theme.of(context).colorScheme.outline.withOpacity(0.2),
-//               width: isSelected ? 2 : 1,
-//             ),
-//             boxShadow: isSelected
-//                 ? [
-//                     BoxShadow(
-//                       color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-//                       blurRadius: 8,
-//                       offset: const Offset(0, 2),
-//                     ),
-//                   ]
-//                 : [
-//                     BoxShadow(
-//                       color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
-//                       blurRadius: 4,
-//                       offset: const Offset(0, 1),
-//                     ),
-//                   ],
-//           ),
-//           child: Row(
-//             children: [
-//               Container(
-//                 width: 28,
-//                 height: 28,
-//                 decoration: BoxDecoration(
-//                   color: isSelected
-//                       ? Theme.of(context).colorScheme.primary
-//                       : Theme.of(context).colorScheme.surfaceVariant,
-//                   shape: BoxShape.circle,
-//                   border: Border.all(
-//                     color: isSelected
-//                         ? Theme.of(context).colorScheme.primary
-//                         : Theme.of(context).colorScheme.outline.withOpacity(0.4),
-//                   ),
-//                 ),
-//                 child: Center(
-//                   child: Text(
-//                     label,
-//                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-//                       color: isSelected
-//                           ? Theme.of(context).colorScheme.onPrimary
-//                           : Theme.of(context).colorScheme.onSurfaceVariant,
-//                       fontWeight: FontWeight.w600,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//               const SizedBox(width: 16),
-//               Expanded(
-//                 child: Text(
-//                   option,
-//                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-//                     color: isSelected
-//                         ? Theme.of(context).colorScheme.onSurface
-//                         : Theme.of(context).colorScheme.onSurfaceVariant,
-//                     fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-//                   ),
-//                 ),
-//               ),
-//               if (isSelected)
-//                 Container(
-//                   padding: const EdgeInsets.all(4),
-//                   decoration: BoxDecoration(
-//                     color: Theme.of(context).colorScheme.primary,
-//                     shape: BoxShape.circle,
-//                   ),
-//                   child: Icon(
-//                     Icons.check,
-//                     size: 16,
-//                     color: Theme.of(context).colorScheme.onPrimary,
-//                   ),
-//                 ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
+        Expanded(
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Question ${state.currentQuestionIndex + 1}',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          currentQuestion.question,
+                          style: Theme.of(context).textTheme.headlineSmall!,
+                        ),
+                      ],
+                    ),
+                  ),
 
-//   void _submitAnswers() {
-//     final navigationState = context.read<McqNavigationBloc>().state;
-//     if (navigationState is McqNavigationReady) {
-//       context.read<McqInterviewBloc>().add(
-//         SubmitAnswersEvent(
-//           sessionId: widget.sessionId,
-//           userId: widget.userId,
-//           answers: navigationState.answers,
-//           jobRole: widget.jobRole,
-//           difficultyLevel: widget.difficultyLevel,
-//           category: widget.category,
-//         ),
-//       );
-//     }
-//   }
-// }
+                  const SizedBox(height: 16),
+
+                  ...currentQuestion.options.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final option = entry.value;
+                    final optionLabel = String.fromCharCode(65 + index);
+                    final isSelected = state.selectedOption == option;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          context.read<McqInterviewBloc>().add(
+                            SelectOption(option),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            color:
+                                isSelected
+                                    ? Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacityCompat(0.1)
+                                    : Theme.of(context).colorScheme.surface,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                      isSelected
+                                          ? Theme.of(
+                                            context,
+                                          ).colorScheme.primary
+                                          : Colors.grey.shade300,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    optionLabel,
+                                    style: TextStyle(
+                                      color:
+                                          isSelected
+                                              ? Colors.white
+                                              : Colors.black,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  option,
+                                  style:
+                                      isSelected
+                                          ? Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium!.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                            fontSize: 15,
+                                          )
+                                          : Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall!.copyWith(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                            fontSize: 15,
+                                          ),
+                                  // style: TextStyle(
+                                  //   fontWeight:
+                                  //       isSelected
+                                  //           ? FontWeight.w600
+                                  //           : FontWeight.normal,
+                                  //   color:
+                                  //       isSelected
+                                  //           ? Theme.of(
+                                  //             context,
+                                  //           ).colorScheme.primary
+                                  //           : Colors.black,
+                                  //   fontSize: 15,
+                                  // ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        Padding(
+          padding: EdgeInsetsGeometry.fromLTRB(16, 0, 16, 16),
+          child: Row(
+            children: [
+              if (state.canNavigatePrevious)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      context.read<McqInterviewBloc>().add(
+                        const NavigateToPrevious(),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade400),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      'Previous',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                ),
+              if (state.canNavigatePrevious) const SizedBox(width: 16),
+              Expanded(
+                flex: state.canNavigatePrevious ? 1 : 2,
+                child: ElevatedButton(
+                  onPressed:
+                      state.canNavigateNext
+                          ? () {
+                            if (state.isLastQuestion) {
+                              context.read<McqInterviewBloc>().add(
+                                const CompleteInterview(),
+                              );
+                            } else {
+                              context.read<McqInterviewBloc>().add(
+                                const NavigateToNext(),
+                              );
+                            }
+                          }
+                          : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    state.isLastQuestion ? 'Submit Interview' : 'Next Question',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSavingContent(
+    BuildContext context,
+    SavingInterviewResultState state,
+  ) {
+    // Start pulse animation when entering saving state
+    _pulseController.repeat(reverse: true);
+
+    // percentage not used here; removed to satisfy analyzer
+
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated loading indicator with pulse effect
+              AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _pulseAnimation.value,
+                    child: SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                        strokeWidth: 6,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 32),
+
+              // Processing message with fade effect
+              AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: 0.7 + (_pulseAnimation.value * 0.3),
+                    child: Text(
+                      'Processing Your Results',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Subtext with score info
+              Text(
+                'Evaluating ${state.questions.length} questions...',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacityCompat(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Animated progress dots
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  return AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (context, child) {
+                      final delay = index * 0.3;
+                      final animationValue =
+                          (_pulseController.value + delay) % 1.0;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacityCompat(
+                              0.3 + (animationValue * 0.7),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorContent(BuildContext context, String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Something went wrong',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: TextStyle(color: Colors.black, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

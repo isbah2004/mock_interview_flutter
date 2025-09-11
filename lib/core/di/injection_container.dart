@@ -6,13 +6,12 @@ import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
-import 'package:mock_interview/core/services/api_service.dart';
+import 'package:mock_interview/core/cubits/theme_cubit/theme_cubit.dart';
 import 'package:mock_interview/core/services/appwrite_service.dart';
 import 'package:mock_interview/core/services/network_service.dart';
 import 'package:mock_interview/core/services/unified_database_service.dart';
+import 'package:mock_interview/core/services/user_stats_service.dart';
 import 'package:mock_interview/features/auth/data/datasources/auth_local_data_source.dart';
-
-// Auth
 import 'package:mock_interview/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:mock_interview/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:mock_interview/features/auth/domain/repositories/auth_repository.dart';
@@ -25,47 +24,49 @@ import 'package:mock_interview/features/auth/domain/usecases/sign_out.dart';
 import 'package:mock_interview/features/auth/domain/usecases/send_password_reset_email.dart';
 import 'package:mock_interview/features/auth/domain/usecases/update_profile.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:mock_interview/features/mcqinterviews/domain/usecases/check_health.dart';
-import 'package:mock_interview/features/mcqinterviews/domain/usecases/get_active_session.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/usecases/start_interview_usecase.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/usecases/submit_answers_usecase.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/usecases/complete_interview_usecase.dart';
-
-// Voice Interview
 import 'package:mock_interview/core/services/flutter_permission_service.dart';
 import 'package:mock_interview/core/services/flutter_speech_service.dart';
-import 'package:mock_interview/core/services/gemini_ai_service.dart';
+import 'package:mock_interview/core/services/gemini_ai_service/gemini_ai_service.dart';
 import 'package:mock_interview/features/voiceinterviews/domain/usecases/start_interview_usecase.dart'
     as voice_start;
 import 'package:mock_interview/features/voiceinterviews/domain/usecases/send_response_usecase.dart';
 import 'package:mock_interview/features/voiceinterviews/domain/usecases/handle_speech_usecase.dart';
-import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview_setup/interview_setup_bloc.dart';
-
-// Home
 import 'package:mock_interview/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:mock_interview/features/home/data/repositories/home_repository_impl.dart';
 import 'package:mock_interview/features/home/domain/repositories/home_repository.dart';
 import 'package:mock_interview/features/home/domain/usecases/get_user_stats.dart';
 import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
-
-// Interview
-import 'package:mock_interview/features/mcqinterviews/data/datasources/mcq_interview_remote_datasource.dart';
 import 'package:mock_interview/features/mcqinterviews/data/repositories/appwrite_mcq_interview_repository_impl.dart';
 import 'package:mock_interview/features/mcqinterviews/domain/repositories/mcq_interview_repository.dart';
-import 'package:mock_interview/features/mcqinterviews/domain/usecases/get_session_stats.dart';
-import 'package:mock_interview/features/mcqinterviews/domain/usecases/delete_session.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_cubit.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/bloc/unified_mcq_interview_bloc.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_interview_bloc.dart';
+import 'package:mock_interview/features/home/cubit/navigation_cubit.dart';
+import 'package:mock_interview/features/history/data/datasources/history_remote_data_source.dart';
+import 'package:mock_interview/features/history/data/repositories/history_repository_impl.dart';
+import 'package:mock_interview/features/history/domain/repositories/history_repository.dart';
+import 'package:mock_interview/features/history/domain/usecases/get_history_usecase.dart';
+import 'package:mock_interview/features/history/presentation/cubit/history_cubit.dart';
+import 'package:mock_interview/features/ads/data/datasources/admob_datasource.dart';
+import 'package:mock_interview/features/ads/data/repositories/ad_repository_impl.dart';
+import 'package:mock_interview/features/ads/domain/repositories/ad_repository.dart';
+import 'package:mock_interview/features/ads/domain/usecases/initialize_ads_usecase.dart';
+import 'package:mock_interview/features/ads/domain/usecases/load_interstitial_ad_usecase.dart';
+import 'package:mock_interview/features/ads/domain/usecases/show_interstitial_ad_usecase.dart';
+import 'package:mock_interview/features/ads/presentation/services/ad_service.dart';
+import 'package:mock_interview/features/ads/presentation/services/ad_integration_service.dart';
+import 'package:mock_interview/features/ads/presentation/bloc/ad_bloc.dart';
 
 final serviceLocator = GetIt.instance;
 
 Future<void> initializeDependencies() async {
-  // Firebase Auth instance
   serviceLocator.registerLazySingleton<FirebaseAuth>(
     () => FirebaseAuth.instance,
   );
 
-  // Appwrite instances (using static getters)
   serviceLocator.registerLazySingleton<appwrite.Client>(
     () => AppwriteService.client,
   );
@@ -85,13 +86,17 @@ Future<void> initializeDependencies() async {
     () => FacebookAuth.instance,
   );
   serviceLocator.registerLazySingleton<GetStorage>(() => GetStorage());
-  // External services
-  serviceLocator.registerLazySingleton<ApiService>(() => ApiService());
 
-  // Unified Database Service for Appwrite schema integration
   serviceLocator.registerLazySingleton<UnifiedDatabaseService>(
     () =>
         UnifiedDatabaseService(databases: serviceLocator<appwrite.Databases>()),
+  );
+
+  serviceLocator.registerLazySingleton<UserStatsService>(
+    () => UserStatsService(
+      databases: serviceLocator<appwrite.Databases>(),
+      storage: serviceLocator<GetStorage>(),
+    ),
   );
 
   serviceLocator.registerLazySingleton<InternetConnection>(
@@ -101,7 +106,6 @@ Future<void> initializeDependencies() async {
     () => NetworkInfoImpl(serviceLocator<InternetConnection>()),
   );
 
-  // Auth Data Sources
   serviceLocator.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(
       firebaseAuth: serviceLocator<FirebaseAuth>(),
@@ -115,7 +119,9 @@ Future<void> initializeDependencies() async {
   serviceLocator.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(serviceLocator<GetStorage>()),
   );
-  // Auth Repository
+
+  // Home Navigation Cubit
+  serviceLocator.registerFactory<NavigationCubit>(() => NavigationCubit());
   serviceLocator.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       remoteDataSource: serviceLocator<AuthRemoteDataSource>(),
@@ -123,7 +129,7 @@ Future<void> initializeDependencies() async {
       localDataSource: serviceLocator<AuthLocalDataSource>(),
     ),
   );
-  // Auth Use Cases
+
   serviceLocator.registerLazySingleton(
     () => SignInWithEmail(serviceLocator<AuthRepository>()),
   );
@@ -150,7 +156,11 @@ Future<void> initializeDependencies() async {
     () => UpdateProfile(serviceLocator<AuthRepository>()),
   );
 
-  serviceLocator.registerLazySingleton<UserCubit>(() => UserCubit());
+  serviceLocator.registerLazySingleton<UserCubit>(
+    () => UserCubit(serviceLocator<UserStatsService>()),
+  );
+
+  serviceLocator.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
 
   serviceLocator.registerFactory(
     () => AuthBloc(
@@ -162,52 +172,16 @@ Future<void> initializeDependencies() async {
       signInWithGoogle: serviceLocator<SignInWithGoogle>(),
       signInWithFacebook: serviceLocator<SignInWithFacebook>(),
       userCubit: serviceLocator<UserCubit>(),
+      userStatsService: serviceLocator<UserStatsService>(),
     ),
   );
 
-  // Interview Data Sources
-  serviceLocator.registerLazySingleton<InterviewRemoteDataSource>(
-    () => InterviewRemoteDataSourceImpl(
-      apiService: serviceLocator<ApiService>(),
-      databases: serviceLocator<appwrite.Databases>(),
-    ),
-  );
-
-  // serviceLocator.registerLazySingleton<InterviewLocalDataSource>(
-  //   () => InterviewLocalDataSourceImpl(
-  //     databases: serviceLocator<appwrite.Databases>(),
-  //   ),
-  // );
-
-  // Interview Repository (choose between legacy API or Appwrite)
   serviceLocator.registerLazySingleton<InterviewRepository>(
     () => AppwriteMcqInterviewRepositoryImpl(
       databaseService: serviceLocator<UnifiedDatabaseService>(),
       networkService: serviceLocator<NetworkService>(),
+      aiService: serviceLocator<GeminiAiService>(),
     ),
-  );
-
-  // Alternative: Legacy API-based repository
-  // serviceLocator.registerLazySingleton<InterviewRepository>(
-  //   () => InterviewRepositoryImpl(
-  //     remoteDataSource: serviceLocator<InterviewRemoteDataSource>(),
-  //     networkService: serviceLocator<NetworkService>(),
-  //   ),
-  // );
-
-  // Interview Use Cases
-  serviceLocator.registerLazySingleton(
-    () => GetSessionStats(serviceLocator<InterviewRepository>()),
-  );
-  serviceLocator.registerLazySingleton(
-    () => DeleteSession(serviceLocator<InterviewRepository>()),
-  );
-
-  serviceLocator.registerLazySingleton(
-    () => GetActiveSessions(serviceLocator<InterviewRepository>()),
-  );
-  serviceLocator.registerLazySingleton(
-    () => CheckHealth(serviceLocator<InterviewRepository>()),
   );
 
   serviceLocator.registerLazySingleton<HomeRemoteDataSource>(
@@ -216,24 +190,20 @@ Future<void> initializeDependencies() async {
     ),
   );
 
-  // Home Repository
   serviceLocator.registerLazySingleton<HomeRepository>(
     () => HomeRepositoryImpl(
       remoteDataSource: serviceLocator<HomeRemoteDataSource>(),
     ),
   );
 
-  // Home Use Cases
   serviceLocator.registerLazySingleton(
     () => GetUserStats(serviceLocator<HomeRepository>()),
   );
 
-  // Home Bloc
   serviceLocator.registerFactory(
     () => HomeBloc(getUserStats: serviceLocator<GetUserStats>()),
   );
 
-  // Interview Use Cases
   serviceLocator.registerFactory(
     () => StartInterviewUseCase(serviceLocator<InterviewRepository>()),
   );
@@ -244,18 +214,71 @@ Future<void> initializeDependencies() async {
     () => CompleteInterviewUseCase(serviceLocator<InterviewRepository>()),
   );
 
-  serviceLocator.registerFactory(
+  serviceLocator.registerFactory(() => TimerCubit());
+
+  // Unified MCQ Interview Bloc - produced by DI so views can obtain it via GetIt or
+  // the Flutter BlocProvider created in main.dart.
+  serviceLocator.registerFactory<McqInterviewBloc>(
     () => McqInterviewBloc(
-      startInterviewUseCase: serviceLocator<StartInterviewUseCase>(),
-      submitAnswersUseCase: serviceLocator<SubmitAnswersUseCase>(),
-      completeInterviewUseCase: serviceLocator<CompleteInterviewUseCase>(),
+      geminiAIService: serviceLocator<GeminiAiService>(),
+      databaseService: serviceLocator<UnifiedDatabaseService>(),
+      userStatsService: serviceLocator<UserStatsService>(),
+      userCubit: serviceLocator<UserCubit>(),
     ),
   );
 
-  // Register TimerCubit as a simple factory
-  serviceLocator.registerFactory(() => TimerCubit());
+  // Ads feature: datasource, repository, usecases, service, and bloc
+  serviceLocator.registerLazySingleton<AdRemoteDataSource>(
+    () => AdMobDataSource(),
+  );
 
-  // Voice Interview Services
+  serviceLocator.registerLazySingleton<AdRepository>(
+    () => AdRepositoryImpl(serviceLocator<AdRemoteDataSource>()),
+  );
+
+  serviceLocator.registerLazySingleton(
+    () => InitializeAdsUseCase(serviceLocator<AdRepository>()),
+  );
+
+  serviceLocator.registerLazySingleton(
+    () => LoadInterstitialAdUseCase(serviceLocator<AdRepository>()),
+  );
+
+  serviceLocator.registerLazySingleton(
+    () => ShowInterstitialAdUseCase(serviceLocator<AdRepository>()),
+  );
+
+  // Ad presentation service and bloc
+  serviceLocator.registerFactory<InterstitialAdBloc>(
+    () => InterstitialAdBloc(
+      initializeAdsUseCase: serviceLocator<InitializeAdsUseCase>(),
+      loadInterstitialAdUseCase: serviceLocator<LoadInterstitialAdUseCase>(),
+      showInterstitialAdUseCase: serviceLocator<ShowInterstitialAdUseCase>(),
+    ),
+  );
+
+  serviceLocator.registerLazySingleton<AdService>(
+    () => AdService(serviceLocator<InterstitialAdBloc>()),
+  );
+
+  serviceLocator.registerLazySingleton<AdIntegrationService>(
+    () => AdIntegrationService(serviceLocator<InterstitialAdBloc>()),
+  );
+
+  // Unified Voice Interview Bloc
+  serviceLocator.registerFactory<VoiceInterviewBloc>(
+    () => VoiceInterviewBloc(
+      databaseService: serviceLocator<UnifiedDatabaseService>(),
+      networkService: serviceLocator<NetworkService>(),
+      startInterviewUseCase:
+          serviceLocator<voice_start.StartInterviewUseCase>(),
+      sendResponseUseCase: serviceLocator<SendResponseUseCase>(),
+      handleSpeechUseCase: serviceLocator<HandleSpeechUseCase>(),
+      userCubit: serviceLocator<UserCubit>(),
+      userStatsService: serviceLocator<UserStatsService>(),
+    ),
+  );
+
   serviceLocator.registerLazySingleton<PermissionService>(
     () => FlutterPermissionService(),
   );
@@ -264,25 +287,43 @@ Future<void> initializeDependencies() async {
     () => FlutterSpeechService(),
   );
 
-  serviceLocator.registerLazySingleton<AIService>(() => GeminiAIService());
+  final geminiInstance = GeminiAiService();
+  serviceLocator.registerLazySingleton<GeminiAiService>(() => geminiInstance);
 
-  // Voice Interview Use Cases
   serviceLocator.registerLazySingleton<voice_start.StartInterviewUseCase>(
     () => voice_start.StartInterviewUseCase(
-      serviceLocator<AIService>(),
+      serviceLocator<GeminiAiService>(),
       serviceLocator<SpeechService>(),
       serviceLocator<PermissionService>(),
     ),
   );
 
   serviceLocator.registerLazySingleton<SendResponseUseCase>(
-    () => SendResponseUseCase(serviceLocator<AIService>()),
+    () => SendResponseUseCase(serviceLocator<GeminiAiService>()),
   );
 
   serviceLocator.registerLazySingleton<HandleSpeechUseCase>(
     () => HandleSpeechUseCase(serviceLocator<SpeechService>()),
   );
 
-  // Voice Interview BLoCs
-  serviceLocator.registerFactory(() => InterviewSetupBloc());
+  // History Feature
+  serviceLocator.registerLazySingleton<HistoryRemoteDataSource>(
+    () => HistoryRemoteDataSourceImpl(
+      databaseService: serviceLocator<UnifiedDatabaseService>(),
+    ),
+  );
+
+  serviceLocator.registerLazySingleton<HistoryRepository>(
+    () => HistoryRepositoryImpl(
+      remoteDataSource: serviceLocator<HistoryRemoteDataSource>(),
+    ),
+  );
+
+  serviceLocator.registerLazySingleton<GetHistoryUseCase>(
+    () => GetHistoryUseCase(serviceLocator<HistoryRepository>()),
+  );
+
+  serviceLocator.registerFactory<HistoryCubit>(
+    () => HistoryCubit(getHistoryUseCase: serviceLocator<GetHistoryUseCase>()),
+  );
 }

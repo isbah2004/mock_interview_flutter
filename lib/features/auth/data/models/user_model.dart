@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart' ;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mock_interview/core/entities/user.dart';
 import 'package:mock_interview/core/enums/auth_provider.dart';
 import 'package:mock_interview/core/extensions/auth_provider_extension.dart';
@@ -36,7 +36,9 @@ class UserModel extends UserEntity {
 
   factory UserModel.fromAppwriteDocument(Map<String, dynamic> doc) {
     return UserModel(
-      id: doc['\$id'],
+      id:
+          doc['id'] ??
+          doc['\$id'], // Use the stored 'id' field (Firebase UID) or fallback to Appwrite's $id
       name: doc['name'] ?? '',
       email: doc['email'] ?? '',
       photoUrl: doc['photoUrl'],
@@ -60,8 +62,7 @@ class UserModel extends UserEntity {
       'averageScore': averageScore,
       'voiceInterviews': voiceInterviews,
       'mcqInterviews': mcqInterviews,
-      'updatedAt':updatedAt.toIso8601String(),
-
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
@@ -122,7 +123,7 @@ class UserModel extends UserEntity {
       totalInterviews: totalInterviews ?? this.totalInterviews,
       averageScore: averageScore ?? this.averageScore,
       voiceInterviews: voiceInterviews ?? this.voiceInterviews,
-      mcqInterviews: mcqInterviews ?? this.mcqInterviews, 
+      mcqInterviews: mcqInterviews ?? this.mcqInterviews,
     );
   }
 

@@ -28,3 +28,24 @@ class NetworkFailure extends Failure {
 class InvalidInputFailure extends Failure {
   const InvalidInputFailure(super.message);
 }
+
+// Ad-specific failures (moved here to consolidate failures)
+class AdFailure extends Failure {
+  final int? code;
+
+  const AdFailure({required String message, this.code}) : super(message);
+
+  @override
+  List<Object> get props => [message, code ?? -1];
+
+  @override
+  String toString() => 'AdFailure(message: $message, code: $code)';
+}
+
+class AdNotLoadedFailure extends AdFailure {
+  const AdNotLoadedFailure() : super(message: 'Ad is not loaded');
+}
+
+class AdLoadTimeoutFailure extends AdFailure {
+  const AdLoadTimeoutFailure() : super(message: 'Ad load timeout');
+}

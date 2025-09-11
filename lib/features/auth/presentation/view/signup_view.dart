@@ -11,6 +11,7 @@ import 'package:mock_interview/core/widgets/textfields/reusable_text_fields.dart
 import 'package:mock_interview/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mock_interview/features/auth/presentation/bloc/auth_state.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 
 class SignupView extends StatefulWidget {
   const SignupView({super.key});
@@ -19,8 +20,7 @@ class SignupView extends StatefulWidget {
   State<SignupView> createState() => _SignupViewState();
 }
 
-class _SignupViewState extends State<SignupView>
-    with TickerProviderStateMixin {
+class _SignupViewState extends State<SignupView> with TickerProviderStateMixin {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -122,7 +122,7 @@ class _SignupViewState extends State<SignupView>
                                 decoration: BoxDecoration(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.primary.withOpacity(0.1),
+                                  ).colorScheme.primary.withOpacityCompat(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Image.asset(
@@ -148,9 +148,8 @@ class _SignupViewState extends State<SignupView>
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyLarge?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.7),
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withOpacityCompat(0.7),
                                 ),
                               ),
                             ],
@@ -210,7 +209,7 @@ class _SignupViewState extends State<SignupView>
                               child: Divider(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.outline.withOpacity(0.3),
+                                ).colorScheme.outline.withOpacityCompat(0.3),
                               ),
                             ),
                             Padding(
@@ -222,9 +221,8 @@ class _SignupViewState extends State<SignupView>
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withOpacityCompat(0.6),
                                 ),
                               ),
                             ),
@@ -232,7 +230,7 @@ class _SignupViewState extends State<SignupView>
                               child: Divider(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.outline.withOpacity(0.3),
+                                ).colorScheme.outline.withOpacityCompat(0.3),
                               ),
                             ),
                           ],
@@ -248,8 +246,7 @@ class _SignupViewState extends State<SignupView>
 
                         SocialAuthButton(
                           type: AuthType.facebook,
-                          onTap:
-                              () => _handleSocialAuth(AuthType.facebook),
+                          onTap: () => _handleSocialAuth(AuthType.facebook),
                           isLoading: isLoading,
                         ),
                         const SizedBox(height: 32),
@@ -264,7 +261,7 @@ class _SignupViewState extends State<SignupView>
                               ).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
+                                ).colorScheme.onSurface.withOpacityCompat(0.7),
                               ),
                             ),
                             GestureDetector(
@@ -285,7 +282,7 @@ class _SignupViewState extends State<SignupView>
                                           ? Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(0.4)
+                                              .withOpacityCompat(0.4)
                                           : Theme.of(
                                             context,
                                           ).colorScheme.primary,

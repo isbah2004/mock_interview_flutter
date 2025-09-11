@@ -21,7 +21,7 @@ class McqEvaluationModel extends Equatable {
 
   factory McqEvaluationModel.fromAppwrite(Map<String, dynamic> document) {
     return McqEvaluationModel(
-      evaluationId: document['\$id'] ?? '',
+      evaluationId: document['evaluationId'] ?? document['\$id'] ?? '',
       sessionId: document['sessionId'] ?? '',
       totalQuestions: document['totalQuestions'] ?? 0,
       correctAnswers: document['correctAnswers'] ?? 0,

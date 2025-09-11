@@ -55,6 +55,41 @@ class ProfileManager {
     }
   }
 
+  /// Create user profile in Appwrite
+  static Future<Map<String, dynamic>> createUserProfile({
+    required String userId,
+    required String name,
+    required String email,
+    String? photoUrl,
+    required String provider,
+  }) async {
+    try {
+      final userData = {
+        'name': name,
+        'email': email,
+        'photoUrl': photoUrl,
+        'provider': provider,
+        'totalInterviews': 0,
+        'averageScore': 0.0,
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'voiceInterviews': 0,
+        'mcqInterviews': 0,
+      };
+
+      final response = await _databases.createDocument(
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
+        documentId: userId,
+        data: userData,
+      );
+
+      return response.data;
+    } catch (e) {
+      throw Exception('Failed to create user profile: $e');
+    }
+  }
+
   /// Upload profile image
   static Future<String> uploadProfileImage({
     required String userId,

@@ -41,8 +41,8 @@ class InterviewSession {
     );
   }
 
-  bool get isCompleted => currentQuestionNumber >= config.numberOfQuestions;
-  double get progress => currentQuestionNumber / config.numberOfQuestions;
+  bool get isCompleted => currentQuestionNumber > config.numberOfQuestions;
+  double get progress => (currentQuestionNumber - 1) / config.numberOfQuestions;
 }
 
 enum InterviewStatus { notStarted, inProgress, completed, error }

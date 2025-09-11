@@ -16,41 +16,18 @@ class ForgotPasswordView extends StatefulWidget {
       _ForgotPasswordViewState();
 }
 
-class _ForgotPasswordViewState extends State<ForgotPasswordView>
-    with TickerProviderStateMixin {
+class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final FocusNode emailFocusNode = FocusNode();
 
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-
-    _animationController.forward();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     emailController.dispose();
     emailFocusNode.dispose();
     super.dispose();
@@ -104,131 +81,91 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
           return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withAlpha(26),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Icon(
+                              Icons.lock_reset_rounded,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Forgot Password?',
+                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Don\'t worry! Enter your email address and we\'ll send you a link to reset your password.',
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    ReusableTextField(
+                      hintText: 'Email Address',
+                      controller: emailController,
+                      focusNode: emailFocusNode,
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !isLoading,
+                      prefix: Icon(Icons.email_outlined),
+                      validator: (value) => Validators.validateEmail(value ?? ''),
+                    ),
+                    const SizedBox(height: 32),
+                    PrimaryButton(
+                      onTap: _handlePasswordReset,
+                      title: 'Send Reset Link',
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 40),
-                        Center(
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Icon(
-                                  Icons.lock_reset_rounded,
-                                  size: 48,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                'Forgot Password?',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: Text(
-                                  'Don\'t worry! Enter your email address and we\'ll send you a link to reset your password.',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface.withOpacity(0.7),
-                                    height: 1.5,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'Remember your password? ',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
                           ),
                         ),
-                        const SizedBox(height: 48),
-
-                        ReusableTextField(
-                          hintText: 'Email Address',
-                          controller: emailController,
-                          focusNode: emailFocusNode,
-                          keyboardType: TextInputType.emailAddress,
-                          enabled: !isLoading,
-                          
-                          prefix:Icon( Icons.email_outlined),
-                          validator:
-                              (value) => Validators.validateEmail(value ?? ''),
-                        ),
-                        const SizedBox(height: 32),
-
-                        PrimaryButton(
-                          onTap: _handlePasswordReset,
-                          title: 'Send Reset Link',
-                          isLoading: isLoading,
-                        ),
-                        const SizedBox(height: 32),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Remember your password? ',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
-                              ),
+                        GestureDetector(
+                          onTap: isLoading ? null : () => Navigator.pushNamed(context, AppRoutes.login),
+                          child: Text(
+                            'Sign In',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: isLoading
+                                  ? Theme.of(context).colorScheme.onSurface.withAlpha(102)
+                                  : Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
                             ),
-                            GestureDetector(
-                              onTap:
-                                  isLoading
-                                      ? null
-                                      : () => Navigator.pushNamed(
-                                        context,
-                                        AppRoutes.login,
-                                      ),
-                              child: Text(
-                                'Sign In',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.copyWith(
-                                  color:
-                                      isLoading
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withOpacity(0.4)
-                                          : Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

@@ -16,6 +16,12 @@ abstract class SpeechService {
 
   Future<void> speak(String text, {VoidCallback? onComplete});
 
+  Future<void> pauseSpeaking();
+
+  Future<void> resumeSpeaking();
+
+  Future<void> stopSpeaking();
+
   void dispose();
 }
 
@@ -26,6 +32,12 @@ class FlutterSpeechService implements SpeechService {
   bool _isListening = false;
   VoidCallback? _onCompleteCallback;
   Function(String)? _onResult;
+
+  // TTS pause/resume functionality
+  bool _isSpeaking = false;
+  bool _isPaused = false;
+  String? _currentSpeechText;
+  VoidCallback? _currentOnComplete;
 
   @override
   Future<void> initialize() async {
@@ -39,7 +51,7 @@ class FlutterSpeechService implements SpeechService {
   Future<void> _configureTts() async {
     await _tts.setLanguage('en-US');
     await _tts.setPitch(1.0);
-    await _tts.setSpeechRate(0.5);
+    await _tts.setSpeechRate(0.4); // Slower speech rate for better testing
   }
 
   @override
@@ -126,27 +138,125 @@ class FlutterSpeechService implements SpeechService {
   @override
   Future<void> speak(String text, {VoidCallback? onComplete}) async {
     try {
+      debugPrint(
+        'FlutterSpeechService: Starting TTS for: ${text.substring(0, text.length > 50 ? 50 : text.length)}...',
+      );
+
+      // Stop any ongoing TTS first
+      await _tts.stop();
+
+      // Store current speech details for pause/resume functionality
+      _currentSpeechText = text;
+      _currentOnComplete = onComplete;
+      _isSpeaking = true;
+      _isPaused = false;
+
       // Set completion handler safely
+      bool completionCalled = false;
+
       if (onComplete != null) {
         _tts.setCompletionHandler(() {
           // Ensure callback is called only once and safely
-          try {
-            onComplete();
-          } catch (e) {
-            debugPrint('Error in TTS completion callback: $e');
+          if (!completionCalled && !_isPaused) {
+            completionCalled = true;
+            _isSpeaking = false;
+            _currentSpeechText = null;
+            _currentOnComplete = null;
+            debugPrint('FlutterSpeechService: TTS completion handler called');
+            try {
+              onComplete();
+            } catch (e) {
+              debugPrint('Error in TTS completion callback: $e');
+            }
           }
         });
       } else {
-        _tts.setCompletionHandler(() {});
+        _tts.setCompletionHandler(() {
+          if (!_isPaused) {
+            _isSpeaking = false;
+            _currentSpeechText = null;
+          }
+        });
       }
 
+      // Set error handler
+      _tts.setErrorHandler((message) {
+        debugPrint('FlutterSpeechService: TTS error: $message');
+        if (!completionCalled && onComplete != null && !_isPaused) {
+          completionCalled = true;
+          _isSpeaking = false;
+          _currentSpeechText = null;
+          _currentOnComplete = null;
+          onComplete();
+        }
+      });
+
       await _tts.speak(text);
+      debugPrint('FlutterSpeechService: TTS speak method completed');
     } catch (e) {
       debugPrint('Error in TTS speak: $e');
+      _isSpeaking = false;
+      _isPaused = false;
+      _currentSpeechText = null;
+      _currentOnComplete = null;
       // Call completion callback even if speaking fails
       if (onComplete != null) {
         onComplete();
       }
+    }
+  }
+
+  @override
+  Future<void> pauseSpeaking() async {
+    try {
+      if (_isSpeaking && !_isPaused) {
+        await _tts.pause();
+        _isPaused = true;
+        debugPrint('FlutterSpeechService: TTS paused');
+      }
+    } catch (e) {
+      debugPrint('Error pausing TTS: $e');
+    }
+  }
+
+  @override
+  Future<void> resumeSpeaking() async {
+    try {
+      if (_isSpeaking && _isPaused) {
+        // Flutter TTS pause/resume may not work reliably on all platforms
+        // So we restart the speech if needed
+        if (_currentSpeechText != null) {
+          _isPaused = false;
+          debugPrint('FlutterSpeechService: TTS resuming');
+          // Try to resume, if that fails, restart the speech
+          await _tts.speak(_currentSpeechText!);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error resuming TTS: $e');
+    }
+  }
+
+  @override
+  Future<void> stopSpeaking() async {
+    try {
+      await _tts.stop();
+      _isSpeaking = false;
+      _isPaused = false;
+
+      // Call completion callback if stopping manually
+      if (_currentOnComplete != null) {
+        final callback = _currentOnComplete;
+        _currentOnComplete = null;
+        _currentSpeechText = null;
+        callback!();
+      } else {
+        _currentSpeechText = null;
+      }
+
+      debugPrint('FlutterSpeechService: TTS stopped');
+    } catch (e) {
+      debugPrint('Error stopping TTS: $e');
     }
   }
 
@@ -161,5 +271,11 @@ class FlutterSpeechService implements SpeechService {
     _onCompleteCallback = null;
     _onResult = null;
     _isListening = false;
+
+    // Clean up TTS pause/resume state
+    _isSpeaking = false;
+    _isPaused = false;
+    _currentSpeechText = null;
+    _currentOnComplete = null;
   }
 }

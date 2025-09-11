@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 
 class ReusableTextField extends StatefulWidget {
   final String hintText;
@@ -86,7 +87,7 @@ class _ReusableTextFieldState extends State<ReusableTextField> {
                 _isFocused
                     ? [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        color: theme.colorScheme.primary.withOpacityCompat(0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

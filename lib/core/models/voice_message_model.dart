@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mock_interview/core/constants/database_constants.dart';
+import 'package:mock_interview/core/constants/app_secrets.dart';
 
 class VoiceMessageModel extends Equatable {
   final String messageId;
@@ -20,9 +20,9 @@ class VoiceMessageModel extends Equatable {
 
   factory VoiceMessageModel.fromAppwrite(Map<String, dynamic> document) {
     return VoiceMessageModel(
-      messageId: document['\$id'] ?? '',
+      messageId: document['messageId'] ?? document['\$id'] ?? '',
       sessionId: document['sessionId'] ?? '',
-      messageType: document['messageType'] ?? DatabaseConstants.messageTypeUser,
+      messageType: document['messageType'] ?? AppSecrets.messageTypeUser,
       content: document['content'],
       timestamp: DateTime.parse(document['timestamp']),
       sequenceNumber: document['sequenceNumber'] ?? 0,

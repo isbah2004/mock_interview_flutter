@@ -1,417 +1,299 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mock_interview/core/theme/colorpalette/app_colors.dart';
-import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview_result/interview_result_bloc.dart';
-import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview_result/interview_result_event.dart';
-import 'package:mock_interview/features/voiceinterviews/presentation/bloc/interview_result/interview_result_state.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 import '../../domain/entities/interview_config.dart';
 import '../../domain/entities/interview_session.dart';
 import '../../domain/entities/interview_message.dart';
 import '../../utils/ai_response_cleaner.dart';
+import '../../../../core/utils/app_logger.dart';
+import '../../data/models/voice_interview_evaluation_result.dart';
+import '../../../../core/models/voice_evaluation_model.dart';
+import '../../../../core/services/unified_database_service.dart';
+import '../../../../core/di/injection_container.dart' as di;
+import '../../../ads/presentation/services/ad_integration_service.dart';
 
 class InterviewResultView extends StatelessWidget {
   final InterviewSession session;
   final InterviewConfig config;
+  final VoiceEvaluationModel? existingEvaluation;
 
   const InterviewResultView({
     super.key,
     required this.session,
     required this.config,
+    this.existingEvaluation,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (context) =>
-              InterviewResultBloc()
-                ..add(StartEvaluation(session: session, config: config)),
-      child: _InterviewResultViewContent(session: session, config: config),
+    return _InterviewResultViewContent(
+      session: session,
+      config: config,
+      existingEvaluation: existingEvaluation,
     );
   }
 }
 
-class _InterviewResultViewContent extends StatefulWidget {
+class _InterviewResultViewContent extends StatelessWidget {
   final InterviewSession session;
   final InterviewConfig config;
+  final VoiceEvaluationModel? existingEvaluation;
 
   const _InterviewResultViewContent({
     required this.session,
     required this.config,
+    this.existingEvaluation,
   });
 
   @override
-  State<_InterviewResultViewContent> createState() =>
-      _InterviewResultViewContentState();
-}
-
-class _InterviewResultViewContentState
-    extends State<_InterviewResultViewContent>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late AnimationController _scoreAnimationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _scoreAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    _scoreAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
-    );
-    _scoreAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _scoreAnimationController,
-        curve: Curves.elasticOut,
-      ),
-    );
-
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _scoreAnimationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return BlocListener<InterviewResultBloc, InterviewResultState>(
-      listener: (context, state) {
-        if (state is InterviewResultEvaluated && !state.shouldAnimateScore) {
-          // Trigger score animation after evaluation completes
-          _scoreAnimationController.forward();
-          // Update the state to show the animation has been triggered
-          context.read<InterviewResultBloc>().add(StartScoreAnimation());
-        }
-      },
-      child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryPurple.withOpacity(0.05),
-                AppColors.lightBackground,
-                AppColors.lightSecondary.withOpacity(0.03),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                _buildCompactAppBar(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: ScaleTransition(
-                            scale: _scaleAnimation,
-                            child: _buildCompactResultHeader(),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        _buildCompactScoresSection(),
-                        const SizedBox(height: 20),
-                        _buildCompactFeedbackSection(),
-                        const SizedBox(height: 20),
-                        _buildChatTranscriptSection(),
-                        const SizedBox(height: 24),
-                        _buildCompactActionButtons(),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+    // Show ad after voice interview completion
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final adService = di.serviceLocator<AdIntegrationService>();
+      adService.showAfterInterviewCompletion('voice');
+    });
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'Interview Results',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
+        centerTitle: true,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body:
+          existingEvaluation != null
+              ? _buildResultsFromEvaluation(existingEvaluation!, context)
+              : _buildEvaluationNotAvailable(context),
     );
   }
 
-  Widget _buildCompactAppBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.arrow_back,
-                color: AppColors.primaryPurple,
-                size: 20,
+  Widget _buildEvaluationNotAvailable(BuildContext context) {
+    // If we don't have existing evaluation data, show an appropriate message
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.assessment_outlined,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Evaluation Not Available',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Text(
-              'Interview Results',
-              style: TextStyle(
-                color: AppColors.primaryPurple,
-                fontWeight: FontWeight.w700,
-                fontSize: 18, // Reduced from 20
-              ),
+            const SizedBox(height: 8),
+            Text(
+              'The detailed evaluation for this interview is not available. This might be because the interview was not properly completed or the evaluation data was not saved.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(width: 48), // Balance the back button
-        ],
+            const SizedBox(height: 24),
+            if (session.messages.isNotEmpty) ...[
+              Text(
+                'However, you can still view the conversation:',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(height: 300, child: _buildConversationDisplay(context)),
+              const SizedBox(height: 24),
+            ],
+            ElevatedButton(
+              onPressed: () {
+                // Track navigation back to history and show ad strategically
+                final adService = di.serviceLocator<AdIntegrationService>();
+                adService.showOnMenuNavigation();
+
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              child: Text('Back to History'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCompactResultHeader() {
+  Widget _buildConversationDisplayWithMessages(
+    List<InterviewMessage> messages,
+    BuildContext context,
+  ) {
+    // First, let's see the original order
+    AppLogger.debug('=== ORIGINAL MESSAGE ORDER ===');
+    for (int i = 0; i < messages.length; i++) {
+      final msg = messages[i];
+      AppLogger.debug(
+        'Original $i: ${msg.type} - ${msg.timestamp} - ${msg.content.substring(0, msg.content.length > 30 ? 30 : msg.content.length)}...',
+      );
+    }
+
+    // Sort messages by timestamp to ensure correct chronological order
+    final sortedMessages = List<InterviewMessage>.from(messages)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Debug: Print sorted message order
+    AppLogger.debug('=== SORTED MESSAGE ORDER ===');
+    for (int i = 0; i < sortedMessages.length; i++) {
+      final msg = sortedMessages[i];
+      AppLogger.debug(
+        'Sorted $i: ${msg.type} - ${msg.timestamp} - ${msg.content.substring(0, msg.content.length > 30 ? 30 : msg.content.length)}...',
+      );
+    }
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20), // Reduced from 32
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Colors.white.withOpacity(0.9)],
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withAlpha(76),
         ),
-        borderRadius: BorderRadius.circular(16), // Reduced from 24
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16), // Reduced from 20
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primaryPurple, AppColors.primaryPurpleDark],
-              ),
-              borderRadius: BorderRadius.circular(16), // Reduced from 24
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.psychology,
-              size: 32, // Reduced from 48
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16), // Reduced from 24
-          Text(
-            'AI Analysis Complete',
-            style: TextStyle(
-              fontSize: 20, // Reduced from 28
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryPurple,
-            ),
-          ),
-          const SizedBox(height: 8), // Reduced from 12
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ), // Reduced padding
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primaryPurple.withOpacity(0.1),
-                  AppColors.primaryPurple.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text(
-              '${widget.config.jobRole} • ${widget.config.category.displayName}',
-              style: TextStyle(
-                fontSize: 14, // Reduced from 16
-                color: AppColors.primaryPurple,
-                fontWeight: FontWeight.w600,
+              'Interview Conversation',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+          Flexible(
+            fit: FlexFit.loose,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                reverse: false, // Start from the beginning of conversation
+                itemCount: sortedMessages.length,
+                itemBuilder: (context, index) {
+                  final message = sortedMessages[index];
+                  final isUser = message.type == MessageType.user;
 
-  Widget _buildCompactScoresSection() {
-    return BlocBuilder<InterviewResultBloc, InterviewResultState>(
-      builder: (context, state) {
-        if (state is InterviewResultEvaluating) {
-          return _buildLoadingCard(
-            title: 'AI Evaluation in Progress',
-            subtitle: 'Analyzing your performance...',
-            icon: Icons.analytics,
-          );
-        }
-
-        if (state is InterviewResultError) {
-          return _buildErrorCard(state.message);
-        }
-
-        if (state is! InterviewResultEvaluated) {
-          return const SizedBox.shrink();
-        }
-
-        final evaluationResult = state.evaluationResult;
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Colors.white.withOpacity(0.95)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryPurple.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue, Colors.blue.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.auto_graph,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Performance Scores',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryPurple,
-                          ),
-                        ),
-                        Text(
-                          'Based on comprehensive analysis',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.lightOnSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              AnimatedBuilder(
-                animation: _scoreAnimation,
-                builder: (context, child) {
-                  return Center(
+                  return Align(
+                    alignment:
+                        isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            _getScoreColor(
-                              evaluationResult.overallScore,
-                            ).withOpacity(0.2),
-                            _getScoreColor(
-                              evaluationResult.overallScore,
-                            ).withOpacity(0.05),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: _getScoreColor(evaluationResult.overallScore),
-                          width: 2,
-                        ),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.85,
                       ),
-                      child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors:
+                                !isUser
+                                    ? [
+                                      AppColors.primaryPurple,
+                                      AppColors.primaryPurpleDark,
+                                    ]
+                                    : [
+                                      Theme.of(context).colorScheme.outline,
+                                      Theme.of(context).colorScheme.outline,
+                                    ],
+                          ),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isUser ? 20 : 6),
+                            bottomRight: Radius.circular(isUser ? 6 : 20),
+                          ),
+                        ),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              child: Text(
-                                (evaluationResult.overallScore *
-                                        _scoreAnimation.value)
-                                    .toStringAsFixed(1),
-                                key: ValueKey(_scoreAnimation.value),
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getScoreColor(
-                                    evaluationResult.overallScore,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        !isUser
+                                            ? Colors.white.withAlpha(20)
+                                            : AppColors.primaryPurple
+                                                .withOpacityCompat(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    isUser ? Icons.person : Icons.smart_toy,
+                                    size: 14,
+                                    color:
+                                        !isUser
+                                            ? Colors.white
+                                            : AppColors.primaryPurple,
                                   ),
                                 ),
-                              ),
-                            ),
-                            Text(
-                              'Overall',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: _getScoreColor(
-                                  evaluationResult.overallScore,
+                                const SizedBox(width: 8),
+                                Text(
+                                  isUser ? 'You' : 'AI Interviewer',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium?.copyWith(
+                                    color:
+                                        !isUser
+                                            ? Colors.white.withOpacityCompat(
+                                              0.9,
+                                            )
+                                            : AppColors.primaryPurple,
+                                  ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              message.content,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.copyWith(
+                                color:
+                                    isUser
+                                        ? Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface
+                                        : Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
                               ),
                             ),
                           ],
@@ -421,515 +303,266 @@ class _InterviewResultViewContentState
                   );
                 },
               ),
-
-              const SizedBox(height: 20),
-
-              // Communication & Content Scores
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCompactScoreCard(
-                      'Communication',
-                      evaluationResult.communicationScore,
-                      Icons.record_voice_over,
-                      'Clarity & Delivery',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCompactScoreCard(
-                      'Content',
-                      evaluationResult.contentScore,
-                      Icons.lightbulb,
-                      'Knowledge & Depth',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCompactScoreCard(
-    String title,
-    double score,
-    IconData icon,
-    String subtitle,
-  ) {
-    final color = _getScoreColor(score);
-
-    return AnimatedBuilder(
-      animation: _scoreAnimation,
-      builder: (context, child) {
-        return Container(
-          padding: const EdgeInsets.all(12), // Reduced from 20
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
             ),
-            borderRadius: BorderRadius.circular(12), // Reduced from 20
-            border: Border.all(color: color.withOpacity(0.2)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8), // Reduced from 12
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8), // Reduced from 12
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 18,
-                ), // Reduced from 24
-              ),
-              const SizedBox(height: 8), // Reduced from 12
-              Text(
-                title,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14, // Reduced from 16
-                ),
-              ),
-              const SizedBox(height: 2), // Reduced from 4
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: AppColors.lightOnSurface,
-                  fontSize: 10, // Reduced from 12
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6), // Reduced from 8
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: Text(
-                  '${(score * _scoreAnimation.value).toStringAsFixed(1)}/10',
-                  key: ValueKey('${title}_${_scoreAnimation.value}'),
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16, // Reduced from 20
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Color _getScoreColor(double score) {
-    if (score >= 8.0) return Colors.green;
-    if (score >= 6.0) return Colors.orange;
-    return Colors.red;
-  }
-
-  Widget _buildCompactFeedbackSection() {
-    return BlocBuilder<InterviewResultBloc, InterviewResultState>(
-      builder: (context, state) {
-        if (state is InterviewResultEvaluating ||
-            state is! InterviewResultEvaluated) {
-          return const SizedBox.shrink();
-        }
-
-        final cleanedFeedback = AIResponseCleaner.cleanAIResponse(
-          state.evaluationResult.feedback,
-        );
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Colors.white.withOpacity(0.95)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryPurple.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.purple, Colors.purple.shade600],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.psychology,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Feedback',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryPurple,
-                          ),
-                        ),
-                        Text(
-                          'Personalized insights for improvement',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.lightOnSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  cleanedFeedback.isNotEmpty
-                      ? cleanedFeedback
-                      : 'No feedback available.',
-                  style: TextStyle(
-                    color: AppColors.darkDivider,
-                    fontSize: 14,
-                    height: 1.5,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildChatTranscriptSection() {
-    if (widget.session.messages.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Colors.white.withOpacity(0.95)],
-        ),
-        borderRadius: BorderRadius.circular(16), // Reduced from 24
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildConversationDisplay(BuildContext context) {
+    // Use session messages for live interview view
+    return _buildConversationDisplayWithMessages(session.messages, context);
+  }
+
+  MessageType _parseMessageType(String typeString) {
+    switch (typeString.toLowerCase()) {
+      case 'user':
+        return MessageType.user;
+      case 'ai':
+        return MessageType.ai;
+      case 'system':
+        return MessageType.system;
+      case 'error':
+        return MessageType.error;
+      default:
+        return MessageType.ai;
+    }
+  }
+
+  Widget _buildResultsFromEvaluation(
+    VoiceEvaluationModel evaluation,
+    BuildContext context,
+  ) {
+    // Since conversationMessages are now stored separately, we need to fetch them
+    return FutureBuilder<List<InterviewMessage>>(
+      future: _fetchConversationMessages(evaluation.sessionId),
+      builder: (context, snapshot) {
+        List<InterviewMessage> conversationMessages = [];
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show loading state while fetching messages
+          conversationMessages = []; // Empty for now, will show loading
+        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+          conversationMessages = snapshot.data!;
+          AppLogger.info(
+            'InterviewResultView: Using fetched messages (${conversationMessages.length})',
+          );
+        } else {
+          // Fallback 1: try to get messages from evaluation if still available
+          if (evaluation.conversationMessages.isNotEmpty) {
+            conversationMessages =
+                evaluation.conversationMessages.map((msgData) {
+                  return InterviewMessage(
+                    content: msgData['content'] ?? '',
+                    type: _parseMessageType(msgData['type'] ?? 'ai'),
+                    timestamp:
+                        DateTime.tryParse(msgData['timestamp'] ?? '') ??
+                        DateTime.now(),
+                  );
+                }).toList();
+            AppLogger.info(
+              'InterviewResultView: Using evaluation messages (${conversationMessages.length})',
+            );
+          }
+          // Fallback 2: use session messages if available
+          else if (session.messages.isNotEmpty) {
+            conversationMessages = session.messages;
+            AppLogger.info(
+              'InterviewResultView: Using session messages (${conversationMessages.length})',
+            );
+          } else {
+            AppLogger.warn(
+              'InterviewResultView: No conversation messages found from any source',
+            );
+          }
+        }
+
+        // Convert VoiceEvaluationModel to VoiceInterviewEvaluationResult format for display
+        final evaluationResult = VoiceInterviewEvaluationResult(
+          sessionId: evaluation.sessionId,
+          totalQuestions: evaluation.totalQuestions,
+          results: [], // Empty for historical view
+          finalScore: evaluation.finalScore,
+          percentage: evaluation.percentage,
+          passed: evaluation.passed,
+          sessionComplete: evaluation.sessionComplete,
+          completedAt: evaluation.completedAt,
+          feedback: evaluation.feedback,
+          aiCorrectAnswers: evaluation.aiCorrectAnswers,
+          communicationScore: evaluation.communicationScore,
+          contentScore: evaluation.contentScore,
+          overallScore: evaluation.overallScore,
+        );
+
+        return _buildResultsViewWithMessages(
+          evaluationResult,
+          conversationMessages,
+          context,
+        );
+      },
+    );
+  }
+
+  // Add method to fetch conversation messages from voice_messages collection
+  Future<List<InterviewMessage>> _fetchConversationMessages(
+    String sessionId,
+  ) async {
+    try {
+      AppLogger.info(
+        'InterviewResultView: Fetching conversation messages for sessionId: $sessionId',
+      );
+
+      // Get the database service from dependency injection
+      final databaseService = di.serviceLocator<UnifiedDatabaseService>();
+      final voiceMessages = await databaseService.getVoiceMessages(sessionId);
+
+      AppLogger.info(
+        'InterviewResultView: Found ${voiceMessages.length} voice messages',
+      );
+
+      // Convert VoiceMessageModel to InterviewMessage
+      final messages =
+          voiceMessages
+              .map(
+                (voiceMsg) => InterviewMessage(
+                  content: voiceMsg.content ?? '', // Handle nullable content
+                  type: _parseMessageType(voiceMsg.messageType),
+                  timestamp: voiceMsg.timestamp,
+                ),
+              )
+              .toList();
+
+      AppLogger.info(
+        'InterviewResultView: Converted to ${messages.length} interview messages',
+      );
+      return messages;
+    } catch (e) {
+      AppLogger.error(
+        'InterviewResultView: Failed to fetch conversation messages: $e',
+      );
+      return [];
+    }
+  }
+
+  Widget _buildResultsViewWithMessages(
+    dynamic evaluationResult,
+    List<InterviewMessage> messages,
+    BuildContext context,
+  ) {
+    final double overallScore = evaluationResult.overallScore ?? 0.0;
+    final double communicationScore =
+        evaluationResult.communicationScore ?? 0.0;
+    final double contentScore = evaluationResult.contentScore ?? 0.0;
+    final bool passed = overallScore >= 6.0;
+    final double percentage = (overallScore / 10.0) * 100;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16), // Reduced from 24
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8), // Reduced from 12
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.teal, Colors.teal.shade600],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.chat,
-                    color: Colors.white,
-                    size: 20,
-                  ), // Changed icon and reduced size
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Interview Conversation',
-                        style: TextStyle(
-                          fontSize: 18, // Reduced from 22
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryPurple,
-                        ),
-                      ),
-                      Text(
-                        'Complete conversation record',
-                        style: TextStyle(
-                          fontSize: 12, // Reduced from 14
-                          color: AppColors.lightOnSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            constraints: const BoxConstraints(
-              maxHeight: 300,
-            ), // Reduced from 400
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                0,
-                16,
-                16,
-              ), // Reduced padding
-              itemCount: widget.session.messages.length,
-              separatorBuilder:
-                  (context, index) =>
-                      const SizedBox(height: 8), // Reduced from 16
-              itemBuilder: (context, index) {
-                final message = widget.session.messages[index];
-                final isUser = message.type == MessageType.user;
+          // Main Score Card
+          _buildMainScoreCard(passed, percentage, overallScore, context),
 
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ), // Reduced padding
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors:
-                            isUser
-                                ? [
-                                  AppColors.primaryPurple,
-                                  AppColors.primaryPurple.withOpacity(0.8),
-                                ]
-                                : [Colors.grey.shade100, Colors.grey.shade50],
-                      ),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft:
-                            isUser
-                                ? const Radius.circular(16)
-                                : const Radius.circular(4),
-                        bottomRight:
-                            isUser
-                                ? const Radius.circular(4)
-                                : const Radius.circular(16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isUser
-                                  ? AppColors.primaryPurple
-                                  : Colors.grey)
-                              .withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isUser ? Icons.person : Icons.smart_toy,
-                              color:
-                                  isUser ? Colors.white : Colors.grey.shade600,
-                              size: 14, // Reduced from 16
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isUser ? 'You' : 'AI',
-                              style: TextStyle(
-                                color:
-                                    isUser
-                                        ? Colors.white
-                                        : Colors.grey.shade700,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12, // Reduced from 14
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatTimestamp(message.timestamp),
-                              style: TextStyle(
-                                color:
-                                    isUser
-                                        ? Colors.white70
-                                        : AppColors.lightOnSurface,
-                                fontSize: 10, // Reduced from 12
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6), // Reduced from 12
-                        Text(
-                          message.content,
-                          style: TextStyle(
-                            color:
-                                isUser ? Colors.white : AppColors.darkDivider,
-                            fontSize: 13, // Reduced from 14
-                            height: 1.4, // Reduced from 1.5
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          const SizedBox(height: 24),
+
+          // Detailed Score Breakdown
+          _buildDetailedScoreCard(
+            overallScore,
+            communicationScore,
+            contentScore,
+            config,
+            context,
           ),
+
+          const SizedBox(height: 24),
+
+          // AI Feedback Section
+          _buildFeedbackSection(evaluationResult.feedback ?? '', context),
+
+          const SizedBox(height: 24),
+
+          // Interview Conversation
+          if (messages.isNotEmpty) ...[
+            _buildConversationDisplayWithMessages(messages, context),
+            const SizedBox(height: 24),
+          ],
+
+          // Action Buttons
+          _buildActionButtons(context),
+
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildLoadingCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
+  Widget _buildMainScoreCard(
+    bool passed,
+    double percentage,
+    double overallScore,
+    BuildContext context,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(24), // Reduced from 32
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withOpacity(0.95)],
-        ),
-        borderRadius: BorderRadius.circular(16), // Reduced from 24
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12), // Reduced from 16
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primaryPurple, AppColors.primaryPurpleDark],
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: Colors.white, size: 24), // Reduced from 32
-          ),
-          const SizedBox(height: 16), // Reduced from 20
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryPurple),
-          ),
-          const SizedBox(height: 16), // Reduced from 20
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18, // Reduced from 20
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryPurple,
-            ),
-          ),
-          const SizedBox(height: 6), // Reduced from 8
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12, // Reduced from 14
-              color: AppColors.lightOnSurface,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorCard(String errorMessage) {
-    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withOpacity(0.95)],
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outline.withOpacityCompat(0.3),
+          width: 2,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
-          Icon(Icons.error_outline, size: 36, color: Colors.red),
-          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: passed ? Colors.green.shade50 : Colors.red.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              passed ? Icons.check_circle : Icons.cancel,
+              size: 40,
+              color: passed ? Colors.green : Colors.red,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
-            'Evaluation Error',
+            '${percentage.round()}%',
             style: TextStyle(
-              color: Colors.red,
-              fontSize: 18,
+              fontSize: 48,
+              color: passed ? Colors.green : Colors.red,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            errorMessage,
-            style: TextStyle(color: AppColors.lightOnSurface, fontSize: 12),
+            passed ? 'Great Performance!' : 'Keep Practicing!',
+            style: TextStyle(
+              fontSize: 20,
+              color: passed ? Colors.green : Colors.red,
+              fontWeight: FontWeight.w600,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<InterviewResultBloc>().add(
-                RetryEvaluation(session: widget.session, config: widget.config),
-              );
-            },
-            icon: Icon(Icons.refresh, color: Colors.white),
-            label: Text(
-              'Retry Evaluation',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.3),
               ),
+              color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Overall Score: ${overallScore.toStringAsFixed(1)}/10',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
         ],
@@ -937,83 +570,249 @@ class _InterviewResultViewContentState
     );
   }
 
-  Widget _buildCompactActionButtons() {
+  Widget _buildDetailedScoreCard(
+    double overallScore,
+    double communicationScore,
+    double contentScore,
+    InterviewConfig config,
+    BuildContext context,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacityCompat(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.analytics_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Performance Analysis',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      'AI-powered assessment',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildScoreMetric(
+                  'Overall Score',
+                  '${overallScore.toStringAsFixed(1)}/10',
+                  Icons.emoji_events,
+                  _getScoreColor(overallScore),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildScoreMetric(
+                  'Communication',
+                  '${communicationScore.toStringAsFixed(1)}/10',
+                  Icons.record_voice_over,
+                  _getScoreColor(communicationScore),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildScoreMetric(
+                  'Content Quality',
+                  '${contentScore.toStringAsFixed(1)}/10',
+                  Icons.lightbulb,
+                  _getScoreColor(contentScore),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildScoreMetric(
+                  'Difficulty',
+                  config.difficulty.displayName.toUpperCase(),
+                  Icons.trending_up,
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreMetric(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacityCompat(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacityCompat(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackSection(String feedback, BuildContext context) {
+    final cleanedFeedback = AIResponseCleaner.cleanAIResponse(feedback);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacityCompat(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.feedback_outlined, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'AI Feedback & Recommendations',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.3),
+              ),
+            ),
+            child: Text(
+              cleanedFeedback.isNotEmpty
+                  ? cleanedFeedback
+                  : 'No feedback available.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 48, // Reduced from 56
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.primaryPurple),
-              borderRadius: BorderRadius.circular(12), // Reduced from 16
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              icon: Icon(
-                Icons.home,
-                color: AppColors.primaryPurple,
-                size: 18,
-              ), // Reduced icon size
-              label: Text(
-                'Back to Home',
-                style: TextStyle(
-                  color: AppColors.primaryPurple,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14, // Added explicit font size
-                ),
+          child: OutlinedButton(
+            onPressed:
+                () => Navigator.of(context).popUntil((route) => route.isFirst),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.grey.shade400),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Text(
+              'Back to Home',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12), // Reduced from 16
+        const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 48, // Reduced from 56
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primaryPurple, AppColors.primaryPurpleDark],
+          child: ElevatedButton(
+            onPressed:
+                () => Navigator.of(context).popUntil((route) => route.isFirst),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              borderRadius: BorderRadius.circular(12), // Reduced from 16
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.3),
-                  blurRadius: 8, // Reduced from 12
-                  offset: const Offset(0, 3), // Reduced from 4
-                ),
-              ],
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              elevation: 0,
             ),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              icon: const Icon(
-                Icons.refresh,
+            child: const Text(
+              'Try Again',
+              style: TextStyle(
                 color: Colors.white,
-                size: 18,
-              ), // Reduced icon size
-              label: const Text(
-                'Try Again',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14, // Added explicit font size
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -1022,7 +821,9 @@ class _InterviewResultViewContentState
     );
   }
 
-  String _formatTimestamp(DateTime timestamp) {
-    return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+  Color _getScoreColor(double score) {
+    if (score >= 8.0) return Colors.green.shade600;
+    if (score >= 6.0) return Colors.orange.shade600;
+    return Colors.red.shade600;
   }
 }

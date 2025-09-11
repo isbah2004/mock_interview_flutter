@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">mock_interview</string>
+    <string name="app_name">InterviewAce</string>
     <string name="facebook_app_id">1437846474208302</string>
     <string name="facebook_client_token">4cea1734f8cd123c0f500a5a855538b5</string>
     <string name="fb_login_protocol_scheme">fb1437846474208302</string>

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "371590192079",
+    "project_id": "mock-interview-4975f",
+    "storage_bucket": "mock-interview-4975f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371590192079:android:693e8f052cf156fcf510ba",
+        "android_client_info": {
+          "package_name": "com.zyphram.InterviewAce"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "371590192079-earn7itu6rd814ieh3015cu99715u1h4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZV8bPDx8mQLRaOnAQc17aZNYHruDerJc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "371590192079-earn7itu6rd814ieh3015cu99715u1h4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

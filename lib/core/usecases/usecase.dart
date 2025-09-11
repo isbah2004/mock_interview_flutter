@@ -1,8 +1,9 @@
 import 'package:fpdart/fpdart.dart';
 import '../errors/failures.dart';
 
-abstract class UseCase<Type, Params> {
-  Future<Either<Failure, Type>> call(Params params);
+/// Generic use case contract
+abstract class UseCase<R, P> {
+  Future<Either<Failure, R>> call(P params);
 }
 
 class NoParams {}

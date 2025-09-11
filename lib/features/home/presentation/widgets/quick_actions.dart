@@ -35,6 +35,18 @@ class QuickActions extends StatelessWidget {
             Navigator.pushNamed(context, AppRoutes.mcqInterviewSetupView);
           },
         ),
+
+        // // Test Ads Button (Development/Testing only)
+        // if (const bool.fromEnvironment('dart.vm.product') == false)
+        //   InterviewButton(
+        //     title: 'Test Ads',
+        //     subtitle: 'Test Facebook Audience Network integration',
+        //     icon: Icons.monetization_on,
+        //     type: InterviewButtonType.secondary,
+        //     onPressed: () {
+        //       Navigator.pushNamed(context, AppRoutes.adsTest);
+        //     },
+        //   ),
       ],
     );
   }

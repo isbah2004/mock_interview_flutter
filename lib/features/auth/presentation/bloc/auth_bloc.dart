@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
+import 'package:mock_interview/core/services/user_stats_service.dart';
 import 'package:mock_interview/core/usecases/usecase.dart';
 import 'package:mock_interview/features/auth/domain/usecases/get_current_user.dart';
 import 'package:mock_interview/features/auth/domain/usecases/send_password_reset_email.dart';
@@ -22,6 +23,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignInWithGoogle signInWithGoogle;
   final SignInWithFacebook signInWithFacebook;
   final UserCubit userCubit;
+  final UserStatsService userStatsService;
 
   AuthBloc({
     required this.signInWithEmail,
@@ -32,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.signInWithGoogle,
     required this.signInWithFacebook,
     required this.userCubit,
+    required this.userStatsService,
   }) : super(const AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthSignInRequested>(_onAuthSignInRequested);
@@ -48,9 +51,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     final result = await signInWithGoogle.call(NoParams());
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
-      userCubit.loadUser(user); // <-- Load user into UserCubit
-      emit(AuthAuthenticated(user));
+    await result.fold((failure) async => emit(AuthError(failure.message)), (
+      user,
+    ) async {
+      // First load the basic user data
+      userCubit.loadUser(user);
+
+      // Then try to sync complete user data from Appwrite
+      try {
+        final syncedUser = await userStatsService.syncUserDataFromServer(
+          user.id,
+        );
+        if (syncedUser != null && !emit.isDone) {
+          userCubit.loadUser(syncedUser); // Update with synced data
+        }
+      } catch (e) {
+        log('Failed to sync user data after Google sign in: $e');
+        // Continue with basic user data if sync fails
+      }
+
+      if (!emit.isDone) {
+        emit(AuthAuthenticated(user));
+      }
     });
   }
 
@@ -60,9 +82,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     final result = await signInWithFacebook.call(NoParams());
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
-      userCubit.loadUser(user); // <-- Load user into UserCubit
-      emit(AuthAuthenticated(user));
+    await result.fold((failure) async => emit(AuthError(failure.message)), (
+      user,
+    ) async {
+      // First load the basic user data
+      userCubit.loadUser(user);
+
+      // Then try to sync complete user data from Appwrite
+      try {
+        final syncedUser = await userStatsService.syncUserDataFromServer(
+          user.id,
+        );
+        if (syncedUser != null && !emit.isDone) {
+          userCubit.loadUser(syncedUser); // Update with synced data
+        }
+      } catch (e) {
+        log('Failed to sync user data after Facebook sign in: $e');
+        // Continue with basic user data if sync fails
+      }
+
+      if (!emit.isDone) {
+        emit(AuthAuthenticated(user));
+      }
     });
   }
 
@@ -72,13 +113,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     final result = await getCurrentUser.call(NoParams());
-    result.fold((failure) => emit(const AuthUnauthenticated()), (user) {
+    await result.fold((failure) async => emit(const AuthUnauthenticated()), (
+      user,
+    ) async {
       if (user != null) {
         log(user.email);
-        userCubit.loadUser(user); // <-- Load user into UserCubit
-        emit(AuthAuthenticated(user));
+        // Load basic user data first
+        userCubit.loadUser(user);
+
+        // Try to sync complete user data from Appwrite
+        try {
+          final syncedUser = await userStatsService.syncUserDataFromServer(
+            user.id,
+          );
+          if (syncedUser != null && !emit.isDone) {
+            userCubit.loadUser(syncedUser); // Update with synced data
+          }
+        } catch (e) {
+          log('Failed to sync user data during auth check: $e');
+          // Continue with basic user data if sync fails
+        }
+
+        if (!emit.isDone) {
+          emit(AuthAuthenticated(user));
+        }
       } else {
-        emit(const AuthUnauthenticated());
+        // Don't clear UserCubit if it already has user data from local storage
+        if (!userCubit.hasUser) {
+          userCubit.loadUser(null);
+        }
+        if (!emit.isDone) {
+          emit(const AuthUnauthenticated());
+        }
       }
     });
   }
@@ -91,9 +157,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await signInWithEmail(
       SignInWithEmailParams(email: event.email, password: event.password),
     );
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
-      userCubit.loadUser(user); // <-- Load user into UserCubit
-      emit(AuthAuthenticated(user));
+    await result.fold((failure) async => emit(AuthError(failure.message)), (
+      user,
+    ) async {
+      // First load the basic user data
+      userCubit.loadUser(user);
+
+      // Then try to sync complete user data from Appwrite
+      try {
+        final syncedUser = await userStatsService.syncUserDataFromServer(
+          user.id,
+        );
+        if (syncedUser != null && !emit.isDone) {
+          userCubit.loadUser(syncedUser); // Update with synced data
+        }
+      } catch (e) {
+        log('Failed to sync user data after sign in: $e');
+        // Continue with basic user data if sync fails
+      }
+
+      if (!emit.isDone) {
+        emit(AuthAuthenticated(user));
+      }
     });
   }
 

@@ -2,7 +2,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
-  static const String emailVerification = '/email-verification';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String home = '/home';
@@ -15,4 +14,7 @@ class AppRoutes {
   // Explicit result routes
   static const String mcqResultView = '/mcq-result';
   static const String voiceResultView = '/voice-result';
+
+  // Test routes
+  static const String adsTest = '/ads-test';
 }

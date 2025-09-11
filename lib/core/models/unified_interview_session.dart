@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:mock_interview/core/constants/database_constants.dart';
+import 'package:mock_interview/core/constants/app_secrets.dart';
 
 class UnifiedInterviewSession extends Equatable {
   final String sessionId;
@@ -38,14 +38,12 @@ class UnifiedInterviewSession extends Equatable {
 
   factory UnifiedInterviewSession.fromAppwrite(Map<String, dynamic> document) {
     return UnifiedInterviewSession(
-      sessionId: document['\$id'] ?? '',
+      sessionId: document['id'] ?? document['\$id'] ?? '',
       userId: document['userId'] ?? '',
       jobRole: document['jobRole'] ?? '',
-      interviewType:
-          document['interviewType'] ?? DatabaseConstants.interviewTypeMCQ,
-      difficulty:
-          document['difficulty'] ?? DatabaseConstants.difficultyBeginner,
-      category: document['category'] ?? DatabaseConstants.categoryGeneral,
+      interviewType: document['interviewType'] ?? AppSecrets.interviewTypeMCQ,
+      difficulty: document['difficulty'] ?? AppSecrets.difficultyBeginner,
+      category: document['category'] ?? AppSecrets.categoryGeneral,
       totalQuestions: document['totalQuestions'] ?? 0,
       timePerQuestion: document['timePerQuestion'] ?? 60,
       isCompleted: document['isCompleted'] ?? false,

@@ -1,6 +1,6 @@
 
 import 'package:get_storage/get_storage.dart';
-import 'package:mock_interview/core/constants/storage_keys.dart';
+import 'package:mock_interview/core/constants/storage_key.dart';
 import 'package:mock_interview/core/errors/exceptions.dart';
 import '../models/user_model.dart';
 

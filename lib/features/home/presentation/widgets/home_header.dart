@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mock_interview/core/constants/app_strings.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 
 class HomeHeader extends StatelessWidget {
   final String userId;
@@ -19,7 +20,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               'Hi there! 👋',
               style: theme.textTheme.headlineMedium?.copyWith(
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.onPrimaryContainer,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -27,7 +28,7 @@ class HomeHeader extends StatelessWidget {
             Text(
               AppStrings.readyForInterview,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withOpacityCompat(0.7),
               ),
             ),
           ],
@@ -41,13 +42,13 @@ class HomeHeader extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.8),
+                theme.colorScheme.primary.withOpacityCompat(0.8),
               ],
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withOpacityCompat(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

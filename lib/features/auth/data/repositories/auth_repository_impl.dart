@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mock_interview/core/entities/user.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import 'package:mock_interview/core/services/network_service.dart';
+import 'package:mock_interview/core/utils/app_logger.dart';
 import 'package:mock_interview/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:mock_interview/features/auth/data/models/user_model.dart';
 
@@ -139,6 +140,21 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Right(null);
       }
 
+      // Try to get updated user data from Appwrite
+      try {
+        final appwriteDoc = await remoteDataSource.getUserFromAppwrite(
+          user.uid,
+        );
+        if (appwriteDoc != null) {
+          // Return user data from Appwrite (includes updated stats)
+          return Right(UserModel.fromAppwriteDocument(appwriteDoc));
+        }
+      } catch (e) {
+        // If Appwrite data doesn't exist, fall back to Firebase data
+        AppLogger.warn('Could not fetch user from Appwrite: $e');
+      }
+
+      // Fallback to Firebase user data (basic profile, no stats)
       return Right(UserModel.fromFirebaseUser(user));
     } on AuthFailure catch (e) {
       return Left(AuthFailure(e.message));

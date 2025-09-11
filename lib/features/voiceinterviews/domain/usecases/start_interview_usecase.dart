@@ -1,11 +1,10 @@
-
 import 'package:mock_interview/core/services/flutter_permission_service.dart';
 import 'package:mock_interview/core/services/flutter_speech_service.dart';
-import 'package:mock_interview/core/services/gemini_ai_service.dart';
+import 'package:mock_interview/core/services/gemini_ai_service/gemini_ai_service.dart';
 import 'package:mock_interview/features/voiceinterviews/domain/entities/interview_config.dart';
 
 class StartInterviewUseCase {
-  final AIService _aiService;
+  final GeminiAiService _aiService;
   final SpeechService _speechService;
   final PermissionService _permissionService;
 
@@ -27,10 +26,10 @@ class StartInterviewUseCase {
 
     // Initialize services
     await _speechService.initialize();
-    await _aiService.initialize(config);
+    await _aiService.initializeVoiceInterview(config);
 
     // Start interview
-    return await _aiService.sendMessage(
+    return await _aiService.sendVoiceMessage(
       'Begin the mock interview for ${config.jobRole} with ${config.category.displayName.toLowerCase()} questions.',
     );
   }

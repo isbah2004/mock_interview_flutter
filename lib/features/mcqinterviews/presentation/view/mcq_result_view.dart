@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 import 'package:mock_interview/features/mcqinterviews/data/models/evaluation_result_model.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view_new.dart';
+import 'package:mock_interview/features/ads/presentation/services/ad_integration_service.dart';
+import 'package:mock_interview/core/di/injection_container.dart';
+import 'package:mock_interview/core/utils/app_logger.dart';
 
 class McqResultView extends StatefulWidget {
   final EvaluationResultModel evaluationResult;
@@ -13,6 +16,20 @@ class McqResultView extends StatefulWidget {
 }
 
 class _McqResultViewState extends State<McqResultView> {
+  late final AdIntegrationService _adService;
+
+  @override
+  void initState() {
+    super.initState();
+    _adService = serviceLocator<AdIntegrationService>();
+
+    // Show ad after interview completion (natural pause point)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppLogger.info('McqResultView: requesting post-interview ad for mcq');
+      _adService.showAfterInterviewCompletion('mcq');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool passed = widget.evaluationResult.passed;
@@ -26,18 +43,19 @@ class _McqResultViewState extends State<McqResultView> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
-          'MCQ Results',
+          'Interview Results',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -47,19 +65,13 @@ class _McqResultViewState extends State<McqResultView> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: passed
-                      ? [Colors.green.shade50, Colors.green.shade100]
-                      : [Colors.red.shade50, Colors.red.shade100],
-                ),
-                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: passed
-                      ? Colors.green.shade300
-                      : Colors.red.shade300,
-                  width: 1,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withOpacityCompat(0.3),
+                  width: 2,
                 ),
               ),
               child: Column(
@@ -67,51 +79,70 @@ class _McqResultViewState extends State<McqResultView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: passed
-                          ? Colors.green.shade100
-                          : Colors.red.shade100,
+                      color: passed ? Colors.green.shade50 : Colors.red.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       passed ? Icons.check_circle : Icons.cancel,
                       size: 40,
-                      color: passed ? Colors.green.shade600 : Colors.red.shade600,
+                      color: passed ? Colors.green : Colors.red,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '${percentage.round()}%',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: passed ? Colors.green.shade600 : Colors.red.shade600,
+                    style: TextStyle(
+                      fontSize: 48,
+                      color: passed ? Colors.green : Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    passed ? 'Congratulations! You Passed' : 'Better Luck Next Time',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: passed ? Colors.green.shade600 : Colors.red.shade600,
+                    passed
+                        ? 'Congratulations! You Passed'
+                        : 'Better Luck Next Time',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: passed ? Colors.green : Colors.red,
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacityCompat(0.3),
+                      ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacityCompat(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$correctAnswers out of $totalQuestions questions correct',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildDetailedScoreCard(
+              context,
+              results,
+              percentage,
+              correctAnswers,
+              totalQuestions,
             ),
 
             const SizedBox(height: 24),
@@ -123,6 +154,7 @@ class _McqResultViewState extends State<McqResultView> {
             Text(
               'Question Review',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -130,79 +162,74 @@ class _McqResultViewState extends State<McqResultView> {
             const SizedBox(height: 16),
             _buildQuestionList(context, results),
 
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const McqInterviewSetupView(),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(
-                      'Try Again',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => const McqInterviewSetupView(),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        'New Interview',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     Expanded(
+            //       child: OutlinedButton(
+            //         onPressed: () {
+            //           // Track retry interaction and show ad strategically (tracking only)
+            //           AppLogger.info(
+            //             'McqResultView: Try Again tapped - tracking interview retry',
+            //           );
+            //           _adService.showOnInterviewRetry();
 
+            //           Navigator.of(context).pushAndRemoveUntil(
+            //             MaterialPageRoute(
+            //               builder: (context) => const McqInterviewSetupView(),
+            //             ),
+            //             (route) => false,
+            //           );
+            //         },
+            //         style: OutlinedButton.styleFrom(
+            //           side: BorderSide(color: Colors.grey.shade400),
+            //           shape: RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.circular(8),
+            //           ),
+            //           padding: const EdgeInsets.symmetric(vertical: 14),
+            //         ),
+            //         child: Text(
+            //           'Try Again',
+            //           style: TextStyle(
+            //             color: Colors.black,
+            //             fontWeight: FontWeight.w600,
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //     const SizedBox(width: 12),
+            //     Expanded(
+            //       child: ElevatedButton(
+            //         onPressed: () {
+            //           // Track new interview interaction
+            //           _adService.trackInteraction('new_interview_request');
+
+            //           Navigator.of(context).pushAndRemoveUntil(
+            //             MaterialPageRoute(
+            //               builder: (context) => const McqInterviewSetupView(),
+            //             ),
+            //             (route) => false,
+            //           );
+            //         },
+            //         style: ElevatedButton.styleFrom(
+            //           backgroundColor: Theme.of(context).colorScheme.primary,
+            //           foregroundColor: Colors.white,
+            //           shape: RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.circular(8),
+            //           ),
+            //           padding: const EdgeInsets.symmetric(vertical: 14),
+            //           elevation: 0,
+            //         ),
+            //         child: Text(
+            //           'New Interview',
+            //           style: TextStyle(
+            //             color: Colors.white,
+            //             fontWeight: FontWeight.w600,
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             const SizedBox(height: 20),
           ],
         ),
@@ -210,7 +237,121 @@ class _McqResultViewState extends State<McqResultView> {
     );
   }
 
-  Widget _buildTopicSummary(BuildContext context, List<QuestionResultModel> results) {
+  Widget _buildDetailedScoreCard(
+    BuildContext context,
+    List<QuestionResultModel> results,
+    double percentage,
+    int correctAnswers,
+    int totalQuestions,
+  ) {
+    final difficulty = results.isNotEmpty ? results.first.difficulty : "Medium";
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacityCompat(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.analytics_outlined,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Score Breakdown',
+                      style: Theme.of(context).textTheme.headlineLarge,
+                    ),
+                    Text(
+                      'Performance analysis',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildScoreMetric(
+                  context,
+                  'Final Score',
+                  '${percentage.round()}%',
+                  Icons.emoji_events,
+                  _getAccuracyColor(percentage),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildScoreMetric(
+                  context,
+                  'Accuracy',
+                  '$correctAnswers/$totalQuestions',
+                  Icons.gps_fixed,
+                  _getAccuracyColor(percentage),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildScoreMetric(
+                  context,
+                  'Difficulty',
+                  difficulty.toUpperCase(),
+                  Icons.trending_up,
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildScoreMetric(
+                  context,
+                  'Status',
+                  percentage >= 60 ? 'PASSED' : 'FAILED',
+                  percentage >= 60 ? Icons.check_circle : Icons.cancel,
+                  percentage >= 60 ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopicSummary(
+    BuildContext context,
+    List<QuestionResultModel> results,
+  ) {
     Map<String, List<QuestionResultModel>> topicGroups = {};
     for (var result in results) {
       String topic = result.topic;
@@ -223,9 +364,9 @@ class _McqResultViewState extends State<McqResultView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withOpacityCompat(0.3),
         ),
       ),
       child: Column(
@@ -234,6 +375,7 @@ class _McqResultViewState extends State<McqResultView> {
           Text(
             'Performance by Topic',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -248,10 +390,10 @@ class _McqResultViewState extends State<McqResultView> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _getAccuracyColor(percentage).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: _getAccuracyColor(percentage).withOpacityCompat(0.1),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _getAccuracyColor(percentage).withOpacity(0.3),
+                  color: _getAccuracyColor(percentage).withOpacityCompat(0.3),
                 ),
               ),
               child: Row(
@@ -263,32 +405,34 @@ class _McqResultViewState extends State<McqResultView> {
                       children: [
                         Text(
                           entry.key,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${percentage.round()}% accuracy',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _getAccuracyColor(percentage),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '$correct/$total',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
                   ),
@@ -301,186 +445,222 @@ class _McqResultViewState extends State<McqResultView> {
     );
   }
 
-  Widget _buildQuestionList(BuildContext context, List<QuestionResultModel> results) {
+  Widget _buildQuestionList(
+    BuildContext context,
+    List<QuestionResultModel> results,
+  ) {
     return Column(
-      children: results.map((result) {
-        bool isCorrect = result.isCorrect;
+      children:
+          results.map((result) {
+            bool isCorrect = result.isCorrect;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isCorrect
-                  ? Colors.green.shade300
-                  : Colors.red.shade300,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: isCorrect ? Colors.green.shade600 : Colors.red.shade600,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      isCorrect ? Icons.check : Icons.close,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Question ${result.questionNumber}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      result.topic,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                result.question,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  height: 1.4,
-                  color: Theme.of(context).colorScheme.onSurface,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color:
+                      isCorrect
+                          ? Theme.of(
+                            context,
+                          ).colorScheme.tertiary.withOpacityCompat(0.5)
+                          : Theme.of(
+                            context,
+                          ).colorScheme.error.withOpacityCompat(0.5),
+                  width: 1,
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              if (!isCorrect) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        'Your Answer:',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color:
+                              isCorrect
+                                  ? Colors.green.shade600
+                                  : Colors.red.shade600,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          isCorrect ? Icons.check : Icons.close,
+                          size: 16,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 10),
                       Text(
-                        result.userAnswer,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.red.shade700,
-                        ),
+                        'Question ${result.questionNumber}',
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
 
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Correct Answer:',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      result.correctAnswer,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  const SizedBox(height: 12),
 
-              if (result.explanation.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    ),
+                  Text(
+                    result.question,
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+
+                  const SizedBox(height: 12),
+
+                  if (!isCorrect) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 6),
                           Text(
-                            'Explanation',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
+                            'Your Answer:',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
                               fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            result.userAnswer.isEmpty
+                                ? 'Not Answered'
+                                : result.userAnswer,
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        result.explanation,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          height: 1.4,
-                          color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Correct Answer:',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          result.correctAnswer,
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (result.explanation.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacityCompat(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacityCompat(0.3),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Explanation',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            result.explanation,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
+    );
+  }
+
+  Widget _buildScoreMetric(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacityCompat(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacityCompat(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

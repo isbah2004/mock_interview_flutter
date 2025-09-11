@@ -6,7 +6,7 @@ import 'package:mock_interview/core/entities/question.dart';
 class QuestionModel extends Question {
   const QuestionModel({
     required super.id,
-     super.sessionId,
+    super.sessionId,
     required super.questionNumber,
     required super.questionText,
     required super.options,
@@ -61,13 +61,13 @@ class QuestionModel extends Question {
 
   factory QuestionModel.fromAIResponse(Map<String, dynamic> json) {
     return QuestionModel(
-      id:  json['question_id'] ?? '',
+      id: json['question_id'] ?? '',
       questionNumber: json['question_number'] ?? 0,
       questionText: json['question'] ?? '',
       options: List<String>.from(json['options'] ?? []),
       correctAnswer: json['correct_answer'] ?? '',
       explanation: json['explanation'] ?? '',
-      difficulty: json['difficulty'] ,
+      difficulty: json['difficulty'],
       category: json['category'],
       topic: json['topic'] ?? '',
       jobRole: json['job_role'] ?? '',
@@ -91,9 +91,10 @@ class QuestionModel extends Question {
       'job_role': jobRole,
     };
   }
+
   factory QuestionModel.fromAppwrite(Map<String, dynamic> document) {
     return QuestionModel(
-      id: document['\$id'] ?? '',
+      id: document['id'] ?? document['\$id'] ?? '',
       sessionId: document['sessionId'] ?? '',
       questionNumber: document['questionNo'] ?? 0,
       questionText: document['question'] ?? '',
@@ -112,10 +113,11 @@ class QuestionModel extends Question {
 
   Map<String, dynamic> toAppwrite() {
     return {
+      'id': id,
       'sessionId': sessionId,
       'questionNo': questionNumber,
       'question': questionText,
-      'options': jsonEncode(options),
+      'options': options, // Send as array, not JSON string
       'correctAnswer': correctAnswer,
       'userAnswer': userAnswer,
       'score': score ?? 0.0,
@@ -143,6 +145,4 @@ class QuestionModel extends Question {
     }
     return [];
   }
-
- 
 }

@@ -1,116 +1,128 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mock_interview/core/di/injection_container.dart';
 import 'package:mock_interview/core/navigation/routes_name.dart';
-import 'package:mock_interview/features/auth/presentation/view/email_verification_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/forgot_password_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/login_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/reset_password.dart';
 import 'package:mock_interview/features/auth/presentation/view/signup_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/splash_view.dart';
 import 'package:mock_interview/features/home/presentation/view/home_view.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view_new.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_result_args.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_args.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/bloc/mcq/mcq_interview_bloc.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/cubit/timer_cubit.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_view_new.dart';
+import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_view.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_result_view.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/view/voice_interview_setup_view.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/view/interview_result_view.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      // Auth routes - no animation changes for splash as requested
       case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashView());
+
+      // All other routes use hero navigation with fade transition
       case AppRoutes.login:
-        return MaterialPageRoute(builder: (_) => const LoginView());
+        return _createHeroRoute(const LoginView(), heroTag: 'auth_login');
       case AppRoutes.register:
-        return MaterialPageRoute(builder: (_) => const SignupView());
-      case AppRoutes.emailVerification:
-        return MaterialPageRoute(builder: (_) => const EmailVerificationView());
+        return _createHeroRoute(const SignupView(), heroTag: 'auth_signup');
+
       case AppRoutes.forgotPassword:
-        return MaterialPageRoute(builder: (_) => const ForgotPasswordView());
+        return _createHeroRoute(
+          const ForgotPasswordView(),
+          heroTag: 'auth_forgot',
+        );
       case AppRoutes.resetPassword:
-        return MaterialPageRoute(builder: (_) => const ResetPasswordView());
+        return _createHeroRoute(
+          const ResetPasswordView(),
+          heroTag: 'auth_reset',
+        );
       case AppRoutes.home:
-        return MaterialPageRoute(builder: (_) => const HomeView());
+        return _createHeroRoute(const HomeView(), heroTag: 'main_home');
 
       // Generic interview result route (keeps existing behavior)
       case AppRoutes.mcqInterviewResultView:
         final args = settings.arguments as InterviewResultArgs;
-        return MaterialPageRoute(
-          builder:
-              (_) => McqResultView(evaluationResult: args.evaluationResult),
+        return _createHeroRoute(
+          McqResultView(evaluationResult: args.evaluationResult),
+          heroTag: 'mcq_result',
         );
 
       // MCQ interview setup
       case AppRoutes.mcqInterviewSetupView:
-        return MaterialPageRoute(
-          builder:
-              (_) => BlocProvider(
-                create: (_) => serviceLocator.get<McqInterviewBloc>(),
-                child: const McqInterviewSetupView(),
-              ),
+        return _createHeroRoute(
+          const McqInterviewSetupView(),
+          heroTag: 'mcq_setup',
         );
 
       // MCQ interview
       case AppRoutes.mcqInterviewView:
         final args = settings.arguments as McqInterviewArgs;
-        return MaterialPageRoute(
-          builder:
-              (_) => MultiBlocProvider(
-                providers: [
-                  BlocProvider(
-                    create: (_) => serviceLocator.get<McqInterviewBloc>(),
-                  ),
-                  BlocProvider(
-                    // TimerCubit is now registered as a simple factory (no constructor params)
-                    create: (_) => serviceLocator.get<TimerCubit>(),
-                  ),
-                ],
-                child: McqInterviewView(
-                  sessionId: args.sessionId,
-                  questions: args.questions, userId: '', jobRole: '', difficultyLevel: '', category: '',
-                ),
-              ),
+        return _createHeroRoute(
+          McqInterviewView(questions: args.questions, jobTitle: args.jobRole),
+          heroTag: 'mcq_interview',
         );
 
       // Voice interview setup
       case AppRoutes.voiceInterviewSetupView:
-        return MaterialPageRoute(
-          builder: (_) => const VoiceInterviewSetupView(),
+        return _createHeroRoute(
+          const VoiceInterviewSetupView(),
+          heroTag: 'voice_setup',
         );
 
       // Voice interview
       case AppRoutes.voiceInterviewView:
         // This route should use direct navigation from setup screen, not named routes
-        return MaterialPageRoute(
-          builder:
-              (_) => Container(
-                child: const Center(
-                  child: Text(
-                    'Use VoiceInterviewSetupView to start interviews',
-                  ),
-                ),
-              ),
+        return _createHeroRoute(
+          const Center(
+            child: Text('Use VoiceInterviewSetupView to start interviews'),
+          ),
+          heroTag: 'voice_interview',
         );
 
       // Voice result view
-      // case AppRoutes.voiceResultView:
-      //   return MaterialPageRoute(
-      //     builder: (_) => const InterviewResultView(),
-      //   );
+      case AppRoutes.voiceResultView:
+        if (settings.arguments != null) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return _createHeroRoute(
+            InterviewResultView(
+              session: args['session'],
+              config: args['config'],
+            ),
+            heroTag: 'voice_result',
+          );
+        }
+        return _createHeroRoute(
+          const Scaffold(
+            body: Center(
+              child: Text('Voice result requires session and config arguments'),
+            ),
+          ),
+          heroTag: 'voice_result_error',
+        );
+
+      // Test routes are handled elsewhere or the test screen was removed
 
       default:
-        return MaterialPageRoute(
-          builder:
-              (_) => Scaffold(
-                body: Center(
-                  child: Text('No route defined for ${settings.name}'),
-                ),
-              ),
+        return _createHeroRoute(
+          const Scaffold(body: Center(child: Text('No route defined'))),
+          heroTag: 'error_route',
         );
     }
+  }
+
+  /// Create a route with hero transition and fade animation
+  static PageRoute<T> _createHeroRoute<T>(
+    Widget destination, {
+    required String heroTag,
+  }) {
+    return PageRouteBuilder<T>(
+      pageBuilder: (context, animation, secondaryAnimation) => destination,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+    );
   }
 }

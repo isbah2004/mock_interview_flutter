@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 
 class GradientBackground extends StatelessWidget {
   final Widget child;
@@ -21,15 +22,19 @@ class GradientBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: colors ?? (subtle ? [
-            theme.colorScheme.surface,
-            theme.colorScheme.surfaceContainerLowest,
-            theme.colorScheme.surface,
-          ] : [
-            theme.colorScheme.primary.withOpacity(0.05),
-            theme.colorScheme.surface,
-            theme.colorScheme.primary.withOpacity(0.02),
-          ]),
+          colors:
+              colors ??
+              (subtle
+                  ? [
+                    theme.colorScheme.surface,
+                    theme.colorScheme.surfaceContainerLowest,
+                    theme.colorScheme.surface,
+                  ]
+                  : [
+                    theme.colorScheme.primary.withOpacityCompat(0.05),
+                    theme.colorScheme.surface,
+                    theme.colorScheme.primary.withOpacityCompat(0.02),
+                  ]),
         ),
       ),
       child: child,

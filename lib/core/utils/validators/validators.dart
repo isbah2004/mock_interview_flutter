@@ -1,10 +1,34 @@
 import 'package:flutter/material.dart';
 
 class Validators {
-    static void fieldFocusChange(
-      BuildContext context, FocusNode currentFocus, FocusNode nextFocus) {
+  static void fieldFocusChange(
+    BuildContext context,
+    FocusNode currentFocus,
+    FocusNode nextFocus,
+  ) {
     currentFocus.unfocus();
     FocusScope.of(context).requestFocus(nextFocus);
+  }
+
+  static String? validateName(String name) {
+    if (name.isEmpty) {
+      return 'Please enter your name';
+    }
+
+    if (name.length < 2) {
+      return 'Name must be at least 2 characters';
+    }
+
+    if (name.length > 50) {
+      return 'Name must be less than 50 characters';
+    }
+
+    // Check if name contains only letters, spaces, hyphens, and apostrophes
+    if (!RegExp(r"^[a-zA-Z\s\-']+$").hasMatch(name)) {
+      return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+    }
+
+    return null;
   }
 
   static String? validateEmail(String email) {

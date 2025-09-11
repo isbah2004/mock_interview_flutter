@@ -19,6 +19,7 @@ abstract class AuthRemoteDataSource {
   Future<void> verifyEmail(String otp);
   Future<void> updateProfile(String name);
   Future<String> uploadProfileImage(String imagePath);
+  Future<Map<String, dynamic>?> getUserFromAppwrite(String userId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -76,11 +77,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (currentUser == null) {
         throw AuthFailure('Sign-up failed, user not created');
       }
+
+      // Update the display name and wait for completion
       await currentUser.updateDisplayName(name);
 
-      await _storeUserInDatabase(currentUser, 'email');
+      // Reload the user to ensure the display name is updated
+      await currentUser.reload();
+      final updatedUser = _firebaseAuth.currentUser;
 
-      return UserModel.fromFirebaseUser(currentUser, provider: AuthType.email);
+      // Store user in database with the name we just set
+      await _storeUserInDatabase(updatedUser ?? currentUser, 'email', name);
+
+      return UserModel.fromFirebaseUser(
+        updatedUser ?? currentUser,
+        provider: AuthType.email,
+      );
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_authExceptionHandler(e));
     } catch (e) {
@@ -240,12 +251,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_authExceptionHandler(e));
-    } 
-    on AppwriteException catch (e) {
+    } on AppwriteException catch (e) {
       throw ServerFailure(_appwriteExceptionHandler(e));
-    }
-    
-    catch (e) {
+    } catch (e) {
       throw ServerFailure('Unknown error occurred while updating profile');
     }
   }
@@ -272,61 +280,98 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return fileUrl.toString();
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_authExceptionHandler(e));
-    }
-    on AppwriteException catch (e) {
-      throw ServerFailure(_appwriteExceptionHandler(e));}
-     catch (e) {
+    } on AppwriteException catch (e) {
+      throw ServerFailure(_appwriteExceptionHandler(e));
+    } catch (e) {
       throw ServerFailure(
         'Unknown error occurred while uploading profile image',
       );
     }
   }
 
-  Future<void> _storeUserInDatabase(User user, provider) async {
+  Future<void> _storeUserInDatabase(
+    User user,
+    String provider, [
+    String? explicitName,
+  ]) async {
     try {
-      final userData = {
-        'id': user.uid,
-        'name': user.displayName ?? user.email?.split('@')[0] ?? 'User',
-        'email': user.email,
-        'photoUrl': user.photoURL,
-        'totalInterviews': 0,
-        'averageScore': 0.0,
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-        'voiceInterviews': 0,
-        'mcqInterviews': 0,
-        'provider': provider,
-      };
-
-      log('Attempting to store user data: $userData');
-
+      // First check if the user document already exists
+      Map<String, dynamic>? existingUserData;
       try {
+        final existingDoc = await _databases.getDocument(
+          databaseId: AppSecrets.databaseId,
+          collectionId: AppSecrets.usersCollection,
+          documentId: user.uid,
+        );
+        existingUserData = existingDoc.data;
+        log('Found existing user data: $existingUserData');
+      } on AppwriteException catch (e) {
+        if (e.code == 404) {
+          // Document doesn't exist, we'll create it
+          log('User document does not exist, will create new');
+          existingUserData = null;
+        } else {
+          throw ServerFailure(_appwriteExceptionHandler(e));
+        }
+      }
+
+      // Use explicit name if provided, otherwise fall back to user.displayName or email
+      final userName =
+          explicitName ??
+          user.displayName ??
+          user.email?.split('@')[0] ??
+          'User';
+
+      if (existingUserData != null) {
+        // User exists, only update basic profile info without resetting stats
+        final updateData = {
+          'name': userName,
+          'email': user.email,
+          'photoUrl': user.photoURL,
+          'updatedAt': DateTime.now().toIso8601String(),
+          'provider': provider,
+        };
+
+        log('Updating existing user with: $updateData');
+
+        await _databases.updateDocument(
+          databaseId: AppSecrets.databaseId,
+          collectionId: AppSecrets.usersCollection,
+          documentId: user.uid,
+          data: updateData,
+        );
+      } else {
+        // User doesn't exist, create new document with default stats
+        final userData = {
+          'id': user.uid,
+          'name': userName,
+          'email': user.email,
+          'photoUrl': user.photoURL,
+          'totalInterviews': 0,
+          'averageScore': 0.0,
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+          'voiceInterviews': 0,
+          'mcqInterviews': 0,
+          'provider': provider,
+        };
+
+        log('Creating new user with: $userData');
+
         await _databases.createDocument(
           databaseId: AppSecrets.databaseId,
           collectionId: AppSecrets.usersCollection,
           documentId: user.uid,
           data: userData,
         );
-      } on AppwriteException catch (e) {
-        if (e.code == 409) {
-          await _databases.updateDocument(
-            databaseId: AppSecrets.databaseId,
-            collectionId: AppSecrets.usersCollection,
-            documentId: user.uid,
-            data: userData,
-          );
-        } else {
-          throw ServerFailure(_appwriteExceptionHandler(e));
-        }
       }
     } catch (e) {
-      throw ServerFailure('Failed to store user in database');
+      throw ServerFailure('Failed to store user in database: $e');
     }
   }
 
   String _authExceptionHandler(FirebaseAuthException e) {
     switch (e.code) {
-     
       case 'account-exists-with-different-credential':
         return 'An account already exists with a different sign-in method';
       case 'operation-not-allowed':
@@ -356,6 +401,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return 'Server error. Please try again later.';
       default:
         return e.message ?? 'Appwrite error occurred.';
+    }
+  }
+
+  /// Get user data from Appwrite
+  @override
+  Future<Map<String, dynamic>?> getUserFromAppwrite(String userId) async {
+    try {
+      final document = await _databases.getDocument(
+        databaseId: AppSecrets.databaseId,
+        collectionId: AppSecrets.usersCollection,
+        documentId: userId,
+      );
+      return document.data;
+    } on AppwriteException catch (e) {
+      if (e.code == 404) {
+        // User document doesn't exist in Appwrite
+        return null;
+      }
+      throw ServerFailure(_appwriteExceptionHandler(e));
+    } catch (e) {
+      throw ServerFailure('Failed to get user from Appwrite: $e');
     }
   }
 }

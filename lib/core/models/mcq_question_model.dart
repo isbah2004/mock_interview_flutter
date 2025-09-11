@@ -36,7 +36,7 @@ class McqQuestionModel extends Equatable {
 
   factory McqQuestionModel.fromAppwrite(Map<String, dynamic> document) {
     return McqQuestionModel(
-      questionId: document['\$id'] ?? '',
+      questionId: document['questionId'] ?? document['\$id'] ?? '',
       sessionId: document['sessionId'] ?? '',
       questionNo: document['questionNo'] ?? 0,
       question: document['question'] ?? '',
@@ -58,7 +58,7 @@ class McqQuestionModel extends Equatable {
       'sessionId': sessionId,
       'questionNo': questionNo,
       'question': question,
-      'options': jsonEncode(options),
+      'options': options, // Send as array, not JSON string
       'correctAnswer': correctAnswer,
       'userAnswer': userAnswer,
       'isCorrect': isCorrect,

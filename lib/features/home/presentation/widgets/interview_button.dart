@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mock_interview/core/utils/color_compat.dart';
 
 enum InterviewButtonType { primary, secondary }
 
@@ -65,7 +66,7 @@ class _PrimaryInterviewButton extends StatelessWidget {
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         elevation: 8,
-        shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+        shadowColor: theme.colorScheme.primary.withOpacityCompat(0.3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.all(16),
       ),
@@ -76,7 +77,7 @@ class _PrimaryInterviewButton extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onPrimary.withOpacity(0.2),
+              color: theme.colorScheme.onPrimary.withOpacityCompat(0.2),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Icon(icon, color: theme.colorScheme.onPrimary, size: 22),
@@ -98,7 +99,7 @@ class _PrimaryInterviewButton extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                    color: theme.colorScheme.onPrimary.withOpacityCompat(0.8),
                   ),
                 ),
               ],
@@ -132,13 +133,13 @@ class _SecondaryInterviewButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         backgroundColor: theme.colorScheme.surfaceContainerHighest,
         side: BorderSide(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withOpacityCompat(0.3),
           width: 1.5,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.all(16),
         elevation: 4,
-        shadowColor: theme.colorScheme.onSurface.withOpacity(0.1),
+        shadowColor: theme.colorScheme.onSurface.withOpacityCompat(0.1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -147,7 +148,7 @@ class _SecondaryInterviewButton extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withOpacityCompat(0.1),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Icon(icon, color: theme.colorScheme.primary, size: 22),
@@ -169,7 +170,7 @@ class _SecondaryInterviewButton extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withOpacityCompat(0.7),
                   ),
                 ),
               ],

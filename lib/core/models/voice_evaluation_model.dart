@@ -15,7 +15,8 @@ class VoiceEvaluationModel extends Equatable {
   final bool passed;
   final bool sessionComplete;
   final DateTime completedAt;
-  final DateTime createdAt;
+  final List<Map<String, dynamic>>
+  conversationMessages; // Added field for messages
 
   const VoiceEvaluationModel({
     required this.evaluationId,
@@ -31,12 +32,12 @@ class VoiceEvaluationModel extends Equatable {
     required this.passed,
     required this.sessionComplete,
     required this.completedAt,
-    required this.createdAt,
+    this.conversationMessages = const [], // Default empty list
   });
 
   factory VoiceEvaluationModel.fromAppwrite(Map<String, dynamic> document) {
     return VoiceEvaluationModel(
-      evaluationId: document['\$id'] ?? '',
+      evaluationId: document['evaluationId'] ?? document['\$id'] ?? '',
       sessionId: document['sessionId'] ?? '',
       feedback: document['feedback'] ?? '',
       communicationScore: document['communicationScore']?.toDouble() ?? 0.0,
@@ -49,7 +50,9 @@ class VoiceEvaluationModel extends Equatable {
       passed: document['passed'] ?? false,
       sessionComplete: document['sessionComplete'] ?? false,
       completedAt: DateTime.parse(document['completedAt']),
-      createdAt: DateTime.parse(document['createdAt']),
+      conversationMessages: _parseConversationMessages(
+        document['conversationMessages'],
+      ),
     );
   }
 
@@ -60,14 +63,14 @@ class VoiceEvaluationModel extends Equatable {
       'communicationScore': communicationScore,
       'contentScore': contentScore,
       'overallScore': overallScore,
-      'aiCorrectAnswers': jsonEncode(aiCorrectAnswers),
+      'aiCorrectAnswers': aiCorrectAnswers, // Send as array, not JSON string
       'totalQuestions': totalQuestions,
       'finalScore': finalScore,
       'percentage': percentage,
       'passed': passed,
       'sessionComplete': sessionComplete,
       'completedAt': completedAt.toIso8601String(),
-      'createdAt': createdAt.toIso8601String(),
+      // Note: conversationMessages will be stored separately in voice_messages collection
     };
   }
 
@@ -90,6 +93,25 @@ class VoiceEvaluationModel extends Equatable {
     return [];
   }
 
+  static List<Map<String, dynamic>> _parseConversationMessages(dynamic data) {
+    if (data == null) return [];
+
+    if (data is String) {
+      try {
+        final List<dynamic> decoded = jsonDecode(data);
+        return decoded.cast<Map<String, dynamic>>();
+      } catch (e) {
+        return [];
+      }
+    }
+
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+
+    return [];
+  }
+
   factory VoiceEvaluationModel.fromVoiceInterviewEvaluationResult({
     required String sessionId,
     required String feedback,
@@ -103,6 +125,7 @@ class VoiceEvaluationModel extends Equatable {
     required bool passed,
     required bool sessionComplete,
     required DateTime completedAt,
+    List<Map<String, dynamic>>? conversationMessages,
   }) {
     return VoiceEvaluationModel(
       evaluationId: '', // Will be set by Appwrite
@@ -118,7 +141,7 @@ class VoiceEvaluationModel extends Equatable {
       passed: passed,
       sessionComplete: sessionComplete,
       completedAt: completedAt,
-      createdAt: DateTime.now(),
+      conversationMessages: conversationMessages ?? [],
     );
   }
 
@@ -136,7 +159,7 @@ class VoiceEvaluationModel extends Equatable {
     bool? passed,
     bool? sessionComplete,
     DateTime? completedAt,
-    DateTime? createdAt,
+    List<Map<String, dynamic>>? conversationMessages,
   }) {
     return VoiceEvaluationModel(
       evaluationId: evaluationId ?? this.evaluationId,
@@ -152,7 +175,7 @@ class VoiceEvaluationModel extends Equatable {
       passed: passed ?? this.passed,
       sessionComplete: sessionComplete ?? this.sessionComplete,
       completedAt: completedAt ?? this.completedAt,
-      createdAt: createdAt ?? this.createdAt,
+      conversationMessages: conversationMessages ?? this.conversationMessages,
     );
   }
 
@@ -171,6 +194,6 @@ class VoiceEvaluationModel extends Equatable {
     passed,
     sessionComplete,
     completedAt,
-    createdAt,
+    conversationMessages,
   ];
 }

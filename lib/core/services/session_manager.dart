@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'appwrite_service.dart';
@@ -17,7 +19,7 @@ class SessionManager {
     try {
       final response = await _databases.createDocument(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         documentId: ID.unique(),
         data: {
           'userId': userId,
@@ -47,7 +49,7 @@ class SessionManager {
     try {
       final response = await _databases.updateDocument(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         documentId: sessionId,
         data: {
           'score': score,
@@ -71,7 +73,7 @@ class SessionManager {
     try {
       final response = await _databases.listDocuments(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.orderDesc('\$createdAt'),
@@ -94,7 +96,7 @@ class SessionManager {
     try {
       final response = await _databases.listDocuments(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.equal('type', type),
@@ -120,7 +122,7 @@ class SessionManager {
 
       final response = await _databases.listDocuments(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         queries: [
           Query.equal('userId', userId),
           Query.greaterThanEqual('\$createdAt', startDate.toIso8601String()),
@@ -181,7 +183,7 @@ class SessionManager {
     try {
       await _databases.deleteDocument(
         databaseId: AppSecrets.databaseId,
-        collectionId: AppSecrets.sessionsCollection,
+        collectionId: AppSecrets.interviewSessionsCollection,
         documentId: sessionId,
       );
     } catch (e) {

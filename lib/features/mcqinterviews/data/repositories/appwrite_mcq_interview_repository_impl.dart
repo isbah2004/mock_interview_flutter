@@ -1,8 +1,11 @@
+import 'dart:developer';
+
 import 'package:fpdart/fpdart.dart';
 import 'package:mock_interview/core/entities/evaluation_result.dart';
 import 'package:mock_interview/core/errors/failures.dart';
 import 'package:mock_interview/core/services/network_service.dart';
 import 'package:mock_interview/core/services/unified_database_service.dart';
+import 'package:mock_interview/core/services/gemini_ai_service/gemini_ai_service.dart';
 import 'package:mock_interview/core/models/unified_interview_session.dart';
 import 'package:mock_interview/core/models/mcq_question_model.dart';
 import 'package:mock_interview/core/models/mcq_evaluation_model.dart';
@@ -14,10 +17,12 @@ import '../../domain/repositories/mcq_interview_repository.dart';
 class AppwriteMcqInterviewRepositoryImpl implements InterviewRepository {
   final UnifiedDatabaseService databaseService;
   final NetworkService networkService;
+  final GeminiAiService aiService;
 
   AppwriteMcqInterviewRepositoryImpl({
     required this.databaseService,
     required this.networkService,
+    required this.aiService,
   });
 
   @override
@@ -199,6 +204,7 @@ class AppwriteMcqInterviewRepositoryImpl implements InterviewRepository {
 
       return Right(evaluationResult);
     } catch (e) {
+      log(e.toString(), name: 'submitAnswersError');
       return Left(ServerFailure('Failed to submit answers: ${e.toString()}'));
     }
   }
@@ -254,108 +260,6 @@ class AppwriteMcqInterviewRepositoryImpl implements InterviewRepository {
     }
   }
 
-  @override
-  Future<Either<Failure, String>> storeMcqEvaluation({
-    required String sessionId,
-    required int totalQuestions,
-    required int correctAnswers,
-    required double finalScore,
-    int? timeTaken,
-  }) async {
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      final evaluation = McqEvaluationModel.create(
-        sessionId: sessionId,
-        totalQuestions: totalQuestions,
-        correctAnswers: correctAnswers,
-        finalScore: finalScore,
-        timeTaken: timeTaken,
-      );
-
-      final result = await databaseService.storeMcqEvaluation(evaluation);
-      return Right(result.evaluationId);
-    } catch (e) {
-      return Left(
-        ServerFailure('Failed to store MCQ evaluation: ${e.toString()}'),
-      );
-    }
-  }
-
-  @override
-  Future<Either<Failure, Map<String, dynamic>>> getSessionStats(
-    String sessionId,
-  ) async {
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      final session = await databaseService.getInterviewSession(sessionId);
-
-      return Right({
-        'sessionId': sessionId,
-        'totalQuestions': session.totalQuestions,
-        'score': session.score ?? 0,
-        'percentage': session.percentage ?? 0,
-        'isCompleted': session.isCompleted,
-        'passed': session.passed ?? false,
-        'duration': session.duration ?? 0,
-        'feedback': 'Evaluation completed successfully',
-      });
-    } catch (e) {
-      return Left(
-        ServerFailure('Failed to get session stats: ${e.toString()}'),
-      );
-    }
-  }
-
-  @override
-  Future<Either<Failure, void>> deleteSession(String sessionId) async {
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      await databaseService.deleteInterviewSession(sessionId);
-      return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure('Failed to delete session: ${e.toString()}'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Map<String, dynamic>>> getActiveSessions() async {
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      return const Right({'activeSessions': [], 'count': 0});
-    } catch (e) {
-      return Left(
-        ServerFailure('Failed to get active sessions: ${e.toString()}'),
-      );
-    }
-  }
-
-  @override
-  Future<Either<Failure, bool>> checkHealth() async {
-    if (!await networkService.isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
-    }
-
-    try {
-      await databaseService.getUserInterviewSessions('health-check');
-      return const Right(true);
-    } catch (e) {
-      return Left(ServerFailure('Health check failed: ${e.toString()}'));
-    }
-  }
-
-  /// Generate MCQ questions for a session
   Future<List<McqQuestionModel>> _generateMCQQuestions(
     String sessionId,
     String jobRole,
@@ -363,33 +267,47 @@ class AppwriteMcqInterviewRepositoryImpl implements InterviewRepository {
     int numQuestions,
     String category,
   ) async {
-    final questions = <McqQuestionModel>[];
-
-    for (int i = 0; i < numQuestions; i++) {
-      final question = McqQuestionModel(
-        questionId: '',
+    try {
+      // Use AI service to generate questions
+      return await aiService.generateMcqQuestions(
         sessionId: sessionId,
-        questionNo: i + 1,
-        question:
-            'Sample $category question ${i + 1} for $jobRole position ($difficultyLevel difficulty)',
-        options: [
-          'Option A - Sample answer 1',
-          'Option B - Sample answer 2',
-          'Option C - Sample answer 3',
-          'Option D - Sample answer 4',
-        ],
-        correctAnswer: 'Option A - Sample answer 1',
-        explanation:
-            'This is the correct answer because it demonstrates the core concept relevant to $category.',
-        difficulty: difficultyLevel,
         category: category,
-        topic: '$category Fundamentals',
+        difficulty: difficultyLevel,
+        count: numQuestions,
         jobRole: jobRole,
       );
+    } catch (e) {
+      log('AI question generation failed, using fallback: $e');
 
-      questions.add(question);
+      // Fallback to static questions if AI fails
+      final questions = <McqQuestionModel>[];
+
+      for (int i = 0; i < numQuestions; i++) {
+        final question = McqQuestionModel(
+          questionId: '',
+          sessionId: sessionId,
+          questionNo: i + 1,
+          question:
+              'Sample $category question ${i + 1} for $jobRole position ($difficultyLevel difficulty)',
+          options: [
+            'Option A - Sample answer 1',
+            'Option B - Sample answer 2',
+            'Option C - Sample answer 3',
+            'Option D - Sample answer 4',
+          ],
+          correctAnswer: 'Option A - Sample answer 1',
+          explanation:
+              'This is the correct answer because it demonstrates the core concept relevant to $category.',
+          difficulty: difficultyLevel,
+          category: category,
+          topic: '$category Fundamentals',
+          jobRole: jobRole,
+        );
+
+        questions.add(question);
+      }
+
+      return questions;
     }
-
-    return questions;
   }
 }
