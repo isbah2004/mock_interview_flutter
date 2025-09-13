@@ -3,84 +3,47 @@ import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_
 
 class VoiceInputWidget extends StatelessWidget {
   final VoiceInterviewReady state;
-  final Animation<double> pulseAnimation;
-  final Animation<double> waveAnimation;
 
   const VoiceInputWidget({
     super.key,
-    required this.state,
-    required this.pulseAnimation,
-    required this.waveAnimation,
+
+     required this.state
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 200,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedOpacity(
-              opacity: state.isListening ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: SizedBox(
-                height: 40,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: List.generate(7, (index) {
-                    return AnimatedBuilder(
-                      animation: waveAnimation,
-                      builder: (context, child) {
-                        final delay = index * 0.1;
-                        final animValue = ((waveAnimation.value + delay) % 1.0);
-                        final height = 8 + (25 * animValue);
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (state.currentListeningText != null &&
+              state.currentListeningText!.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          width: 3,
-                          height: height,
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade400.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-                ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withAlpha(50),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withAlpha(70),
+                width: 1,
               ),
             ),
+            child: Text(
+              state.currentListeningText!,
+              // 'lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
 
-            const SizedBox(height: 16),
-
-            if (state.currentListeningText != null &&
-                state.currentListeningText!.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  state.currentListeningText!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
               ),
-          ],
-        ),
+              textAlign: TextAlign.start,
+              maxLines: null,
+              // overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -30,8 +30,6 @@ class VoiceInterviewBloc
   final HandleSpeechUseCase _handleSpeechUseCase;
   final UserCubit _userCubit;
   final UserStatsService _userStatsService;
-
-  // Track TTS state to prevent force completion when manually stopped
   bool _ttsManuallyControlled = false;
 
   VoiceInterviewBloc({
@@ -125,6 +123,18 @@ class VoiceInterviewBloc
       );
 
       await _databaseService.createInterviewSession(unifiedSession);
+
+      // Store the first AI message to the database
+      final firstAiVoiceMessage = VoiceMessageModel(
+        messageId: DateTime.now().millisecondsSinceEpoch.toString(),
+        sessionId: sessionId,
+        messageType: AppSecrets.messageTypeAI,
+        content: firstQuestion,
+        timestamp: DateTime.now(),
+        sequenceNumber: 0, // First message has sequence number 0
+      );
+
+      await _databaseService.storeVoiceMessage(firstAiVoiceMessage);
 
       emit(
         VoiceInterviewReady(

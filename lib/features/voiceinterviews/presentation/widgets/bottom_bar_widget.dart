@@ -18,15 +18,6 @@ class BottomBarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wordCount =
-        transcriptController.text.trim().isEmpty
-            ? 0
-            : transcriptController.text.trim().split(' ').length;
-    final canSubmit =
-        !state.isProcessing &&
-        transcriptController.text.trim().isNotEmpty &&
-        wordCount >= 10;
-
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -70,14 +61,7 @@ class BottomBarWidget extends StatelessWidget {
 
               const SizedBox(width: 20),
 
-              Expanded(
-                child: _buildSleekSubmitButton(
-                  context,
-                  state,
-                  canSubmit,
-                  wordCount,
-                ),
-              ),
+              Expanded(child: _buildStateIndicator(context, state)),
             ],
           ),
         ),
@@ -175,115 +159,103 @@ class BottomBarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSleekSubmitButton(
-    BuildContext context,
-    VoiceInterviewReady state,
-    bool canSubmit,
-    int wordCount,
-  ) {
+  Widget _buildStateIndicator(BuildContext context, VoiceInterviewReady state) {
+    String stateText;
+    IconData stateIcon;
+    Color stateColor;
+    bool isActive = false;
+
+    if (state.isListening) {
+      stateText = 'Listening...';
+      stateIcon = Icons.mic;
+      stateColor = Colors.red;
+      isActive = true;
+    } else if (state.isProcessing) {
+      stateText = 'Processing...';
+      stateIcon = Icons.hourglass_empty;
+      stateColor = Colors.orange;
+      isActive = true;
+    } else if (state.isSpeaking) {
+      stateText = 'AI Speaking...';
+      stateIcon = Icons.volume_up;
+      stateColor = Theme.of(context).colorScheme.primary;
+      isActive = true;
+    } else {
+      stateText = 'Waiting';
+      stateIcon = Icons.psychology;
+      stateColor = Theme.of(context).colorScheme.primary;
+      isActive = false;
+    }
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: 56,
-      child: ElevatedButton(
-        onPressed: canSubmit ? () => _submitTranscript(context) : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors:
+              isActive
+                  ? [stateColor.withOpacity(0.2), stateColor.withOpacity(0.1)]
+                  : [
+                    Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerLowest.withOpacity(0.1),
+                  ],
         ),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient:
-                canSubmit
-                    ? LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primaryContainer,
-                      ],
-                    )
-                    : LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                        Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                      ],
-                    ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow:
-                canSubmit
-                    ? [
-                      BoxShadow(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                    : null,
-          ),
-          child: Container(
-            alignment: Alignment.center,
-            child:
-                state.isProcessing
-                    ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Processing...',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    )
-                    : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          canSubmit ? Icons.send_rounded : Icons.lock_rounded,
-                          size: 18,
-                          color:
-                              canSubmit
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.outline,
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            canSubmit ? 'Submit' : '\$wordCount/10',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color:
-                                  canSubmit
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.outline,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-          ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              isActive
+                  ? stateColor.withOpacity(0.4)
+                  : Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow:
+            isActive
+                ? [
+                  BoxShadow(
+                    color: stateColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
+      ),
+      child: Container(
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (state.isProcessing)
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(stateColor),
+                ),
+              )
+            else
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(stateIcon, size: 18, color: stateColor),
+              ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                stateText,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: stateColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -394,12 +366,5 @@ class BottomBarWidget extends StatelessWidget {
     } else {
       bloc.add(PlayTTS());
     }
-  }
-
-  void _submitTranscript(BuildContext context) {
-    final bloc = context.read<VoiceInterviewBloc>();
-    final transcript = transcriptController.text.trim();
-    bloc.add(SendUserResponse(transcript));
-    transcriptController.clear();
   }
 }

@@ -179,30 +179,29 @@ class _InterviewResultViewContent extends StatelessWidget {
           color: Theme.of(context).colorScheme.outline.withAlpha(76),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Interview Conversation',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Interview Conversation',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
-          ),
-          Flexible(
-            fit: FlexFit.loose,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 400),
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                reverse: false, // Start from the beginning of conversation
-                itemCount: sortedMessages.length,
-                itemBuilder: (context, index) {
+            // Use a Column with List.generate instead of ListView.builder
+            // to avoid nested scrollable inside SingleChildScrollView.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                children: List<Widget>.generate(sortedMessages.length, (index) {
                   final message = sortedMessages[index];
                   final isUser = message.type == MessageType.user;
 
@@ -301,11 +300,11 @@ class _InterviewResultViewContent extends StatelessWidget {
                       ),
                     ),
                   );
-                },
+                }),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -511,9 +510,7 @@ class _InterviewResultViewContent extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outline.withOpacityCompat(0.3),
+          color: Theme.of(context).colorScheme.outline.withOpacityCompat(0.3),
           width: 2,
         ),
       ),
@@ -555,9 +552,13 @@ class _InterviewResultViewContent extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withOpacityCompat(0.3),
               ),
-              color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacityCompat(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -611,9 +612,9 @@ class _InterviewResultViewContent extends StatelessWidget {
                   children: [
                     Text(
                       'Performance Analysis',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     Text(
                       'AI-powered assessment',
@@ -736,7 +737,11 @@ class _InterviewResultViewContent extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.feedback_outlined, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.feedback_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -751,10 +756,14 @@ class _InterviewResultViewContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacityCompat(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withOpacityCompat(0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withOpacityCompat(0.3),
               ),
             ),
             child: Text(

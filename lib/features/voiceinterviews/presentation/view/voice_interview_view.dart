@@ -5,12 +5,10 @@ import 'package:mock_interview/core/widgets/error_dialog.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_interview_bloc.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_interview_event.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_interview_state.dart';
-import 'package:mock_interview/features/voiceinterviews/domain/entities/interview_session.dart';
-import 'package:mock_interview/features/voiceinterviews/domain/entities/interview_message.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/widgets/progress_tracker_widget.dart';
-import 'package:mock_interview/features/voiceinterviews/presentation/widgets/question_display_widget.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/widgets/voice_input_widget.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/widgets/bottom_bar_widget.dart';
+import 'package:mock_interview/features/voiceinterviews/presentation/widgets/conversation_display_widget.dart';
 
 class VoiceInterviewScreen extends StatefulWidget {
   final String sessionId;
@@ -26,7 +24,6 @@ class _VoiceInterviewScreenState extends State<VoiceInterviewScreen>
   late AnimationController _pulseController;
   late AnimationController _waveController;
   late Animation<double> _pulseAnimation;
-  late Animation<double> _waveAnimation;
   final TextEditingController _transcriptController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -48,10 +45,6 @@ class _VoiceInterviewScreenState extends State<VoiceInterviewScreen>
 
     _pulseAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _waveAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _waveController, curve: Curves.easeInOut),
     );
   }
 
@@ -212,18 +205,6 @@ class _VoiceInterviewScreenState extends State<VoiceInterviewScreen>
 
   // Submission logic moved to BottomBarWidget
 
-  String _getCurrentQuestion(InterviewSession session) {
-    final aiMessages =
-        session.messages
-            .where((message) => message.type == MessageType.ai)
-            .toList();
-
-    if (aiMessages.isNotEmpty) {
-      return aiMessages.last.content;
-    }
-    return 'Loading question...';
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<VoiceInterviewBloc, VoiceInterviewState>(
@@ -301,8 +282,46 @@ class _VoiceInterviewScreenState extends State<VoiceInterviewScreen>
       builder: (context, state) {
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                // Main body content
+                _buildBody(context, state),
 
-          body: SafeArea(child: _buildBody(context, state)),
+                // Voice input overlay - appears when user is listening
+                if (state is VoiceInterviewReady &&
+                    (state.isListening ||
+                        (state.currentListeningText != null &&
+                            state.currentListeningText!.isNotEmpty)))
+                  Positioned(
+                    bottom: 20, // Position above the bottom bar
+                    left: 12,
+                    right: 12,
+                    child: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            color: Theme.of(context).colorScheme.surface,
+                            child: VoiceInputWidget(state: state),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
           bottomNavigationBar:
               state is VoiceInterviewReady
                   ? BottomBarWidget(
@@ -346,49 +365,30 @@ class _VoiceInterviewScreenState extends State<VoiceInterviewScreen>
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Column(
-                children: [
-                  ProgressTrackerWidget(state: state),
-                  const SizedBox(height: 20),
-                  QuestionDisplayWidget(
-                    state: state,
-                    currentQuestion: _getCurrentQuestion(state.session),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            ProgressTrackerWidget(state: state),
+            const SizedBox(height: 20),
+
+            // Chat Interface - Make it take remaining space and be scrollable
+            if (state.session.messages.isNotEmpty)
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  child: ConversationDisplayWidget(
+                    messages: state.session.messages,
+                    title: 'Interview Conversation',
                   ),
-                ],
+                ),
               ),
-
-              const SizedBox(height: 16),
-
-              Container(
-                margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                child: _buildSleekTranscript(context, state),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // Replaced by ProgressTrackerWidget and QuestionDisplayWidget
-
-  Widget _buildSleekTranscript(
-    BuildContext context,
-    VoiceInterviewReady state,
-  ) {
-    return VoiceInputWidget(
-      state: state,
-      pulseAnimation: _pulseAnimation,
-      waveAnimation: _waveAnimation,
-    );
-  }
-
-  // Old voice input implementation removed - replaced by VoiceInputWidget
+  // Uses ProgressTrackerWidget, ConversationDisplayWidget, and VoiceInputWidget as overlay
 
   Widget _buildErrorContent(BuildContext context, VoiceInterviewError state) {
     return Container(
