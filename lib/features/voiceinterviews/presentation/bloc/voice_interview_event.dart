@@ -24,6 +24,7 @@ class InitializeInterview extends VoiceInterviewEvent {
   final InterviewConfig config;
   final String userId;
 
+
   const InitializeInterview({required this.config, required this.userId});
 
   @override
@@ -103,3 +104,26 @@ class RetryEvaluation extends VoiceInterviewEvent {
 class CompleteSpeaking extends VoiceInterviewEvent {}
 
 class ResetInterviewState extends VoiceInterviewEvent {}
+
+// TTS Control Events
+class PlayTTS extends VoiceInterviewEvent {}
+
+class PauseTTS extends VoiceInterviewEvent {}
+
+class StopTTS extends VoiceInterviewEvent {}
+
+class ReplayTTS extends VoiceInterviewEvent {}
+
+// Additional Interview Events
+class EndInterview extends VoiceInterviewEvent {}
+
+class RetryCurrentQuestion extends VoiceInterviewEvent {}
+
+class UpdateTranscriptText extends VoiceInterviewEvent {
+  final String text;
+
+  const UpdateTranscriptText(this.text);
+
+  @override
+  List<Object?> get props => [text];
+}

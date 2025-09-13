@@ -655,6 +655,7 @@ voice.InterviewSession _createInterviewSessionFromData(
 
   return voice.InterviewSession(
     config: config,
+    numberOfQuestions: config.numberOfQuestions,
     messages: interviewMessages,
     currentQuestionNumber:
         sessionData.totalQuestions, // Set to total since it's completed

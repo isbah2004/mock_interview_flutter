@@ -78,7 +78,7 @@ class _VoiceInterviewSetupContentState
                     (context, animation, secondaryAnimation) =>
                         BlocProvider.value(
                           value: bloc,
-                          child: VoiceInterviewView(config: state.config),
+                          child: VoiceInterviewScreen(sessionId: userId),
                         ),
                 transitionsBuilder: (
                   context,

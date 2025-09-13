@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mock_interview/core/models/mcq_question_model.dart';
-import 'package:mock_interview/features/mcqinterviews/data/models/evaluation_result_model.dart';
 import 'package:mock_interview/core/utils/color_compat.dart';
 import '../bloc/unified_mcq_interview_bloc.dart';
 import '../bloc/unified_mcq_interview_event.dart';
 import '../bloc/unified_mcq_interview_state.dart';
-import 'mcq_result_view.dart';
+import '../widgets/mcq_progress_widget.dart';
+// Keep only widgets used directly by this view
 
 class McqInterviewView extends StatelessWidget {
   final List<McqQuestionModel> questions;
@@ -76,109 +76,40 @@ class _McqInterviewContentState extends State<McqInterviewContent>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
-          'MCQ Interview',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
+          widget.jobTitle,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: false,
       ),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: BlocListener<McqInterviewBloc, UnifiedMcqInterviewState>(
-        listener: (context, state) {
-          if (state is McqInterviewCompletedState) {
-            // Add a small delay to ensure the loading state is visible
-            Future.delayed(const Duration(milliseconds: 500), () {
-              final results =
-                  state.questions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final question = entry.value;
-                    final userAnswer =
-                        index < state.answers.length
-                            ? state.answers[index]
-                            : '';
-                    final isCorrect = userAnswer == question.correctAnswer;
+      body: BlocBuilder<McqInterviewBloc, UnifiedMcqInterviewState>(
+        builder: (context, state) {
+          // Stop pulse animation when not in saving state
+          if (state is! SavingInterviewResultState) {
+            _pulseController.stop();
+          }
 
-                    return QuestionResultModel(
-                      questionId: question.questionId,
-                      questionNumber: index + 1,
-                      question: question.question,
-                      correctAnswer: question.correctAnswer,
-                      userAnswer: userAnswer,
-                      isCorrect: isCorrect,
-                      score: isCorrect ? 1 : 0,
-                      explanation: question.explanation,
-                      topic: question.topic,
-                      difficulty: question.difficulty,
-                    );
-                  }).toList();
-
-              final evaluationResult = EvaluationResultModel(
-                sessionId: state.questions.first.sessionId,
-                totalQuestions: state.totalQuestions,
-                finalScore: state.score,
-                percentage: state.score,
-                passed: state.score >= 60.0,
-                results: results,
-                sessionComplete: true,
-                completedAt: DateTime.now(),
-              );
-
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder:
-                        (context, animation, secondaryAnimation) =>
-                            McqResultView(evaluationResult: evaluationResult),
-                    transitionsBuilder: (
-                      context,
-                      animation,
-                      secondaryAnimation,
-                      child,
-                    ) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    transitionDuration: const Duration(milliseconds: 300),
-                    reverseTransitionDuration: const Duration(
-                      milliseconds: 300,
-                    ),
-                  ),
-                );
-              }
-            });
+          if (state is McqInterviewInProgressState) {
+            return _buildInterviewContent(context, state);
+          } else if (state is SavingInterviewResultState) {
+            return _buildSavingContent(context, state);
+          } else if (state is McqInterviewErrorState) {
+            return _buildErrorContent(context, state.error);
+          } else {
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
           }
         },
-        child: BlocBuilder<McqInterviewBloc, UnifiedMcqInterviewState>(
-          builder: (context, state) {
-            // Stop pulse animation when not in saving state
-            if (state is! SavingInterviewResultState) {
-              _pulseController.stop();
-            }
-
-            if (state is McqInterviewInProgressState) {
-              return _buildInterviewContent(context, state);
-            } else if (state is SavingInterviewResultState) {
-              return _buildSavingContent(context, state);
-            } else if (state is McqInterviewErrorState) {
-              return _buildErrorContent(context, state.error);
-            } else {
-              return Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              );
-            }
-          },
-        ),
       ),
     );
   }
@@ -188,44 +119,10 @@ class _McqInterviewContentState extends State<McqInterviewContent>
     McqInterviewInProgressState state,
   ) {
     final currentQuestion = state.currentQuestion;
-    final progress = (state.currentQuestionIndex + 1) / state.questions.length;
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.surface,
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Question ${state.currentQuestionIndex + 1} of ${state.questions.length}',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.outline.withOpacityCompat(0.3),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
+        McqProgressWidget(state: state),
 
         Expanded(
           child: Container(

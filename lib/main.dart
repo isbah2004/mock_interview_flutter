@@ -121,7 +121,8 @@ class _MyAppState extends State<MyApp> {
             theme: LightTheme.theme,
             // home: AdDemoPage(),
             darkTheme: DarkTheme.theme,
-            themeMode: !themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode:
+                !themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             // themeMode: ThemeMode.light,
             initialRoute: AppRoutes.splash,
             onGenerateRoute: AppRouter.generateRoute,

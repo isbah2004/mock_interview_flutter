@@ -66,6 +66,15 @@ class VoiceInterviewBloc
     on<ResetInterviewState>(_onResetInterviewState);
     on<StartEvaluation>(_onStartEvaluation);
     on<RetryEvaluation>(_onRetryEvaluation);
+
+    // Add new event handlers
+    on<PlayTTS>(_onPlayTTS);
+    on<PauseTTS>(_onPauseTTS);
+    on<StopTTS>(_onStopTTS);
+    on<ReplayTTS>(_onReplayTTS);
+    on<EndInterview>(_onEndInterview);
+    on<RetryCurrentQuestion>(_onRetryCurrentQuestion);
+    on<UpdateTranscriptText>(_onUpdateTranscriptText);
   }
 
   Future<void> _onInitializeInterview(
@@ -96,6 +105,7 @@ class VoiceInterviewBloc
         messages: [aiMessage],
         status: InterviewStatus.inProgress,
         currentQuestionNumber: 1,
+        numberOfQuestions: event.config.numberOfQuestions,
       );
 
       final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -110,7 +120,6 @@ class VoiceInterviewBloc
         difficulty: _mapDifficultyToAppwrite(event.config.difficulty),
         category: _mapCategoryToAppwrite(event.config.category),
         totalQuestions: event.config.numberOfQuestions,
-        timePerQuestion: 120, // 2 minutes per voice question
         isCompleted: false,
         startedAt: DateTime.now(),
       );
@@ -240,20 +249,24 @@ class VoiceInterviewBloc
       await _databaseService.storeVoiceMessage(userVoiceMessage);
       await _databaseService.storeVoiceMessage(aiVoiceMessage);
 
+      // For the last question, keep the user's response text visible
+      final shouldPreserveFinalText =
+          updatedSession.currentQuestionNumber >
+          updatedSession.config.numberOfQuestions;
+
       emit(
         VoiceInterviewReady(
           session: updatedSession,
           sessionId: currentState.sessionId,
+          currentListeningText: shouldPreserveFinalText ? event.response : null,
           isListening: false,
           isSpeaking: false,
           isProcessing: false,
         ),
-      );
-
-      // Check if interview should be completed automatically
-      // Complete when we reach the specified number of questions
+      ); // Check if interview should be completed automatically
+      // Complete when we reach the specified number of questions (AFTER answering all questions)
       final hasReachedQuestionLimit =
-          updatedSession.currentQuestionNumber >=
+          updatedSession.currentQuestionNumber >
           updatedSession.config.numberOfQuestions;
 
       AppLogger.info(
@@ -261,17 +274,22 @@ class VoiceInterviewBloc
         'HasReachedLimit=$hasReachedQuestionLimit',
       );
 
-      // Complete interview immediately when question limit is reached
+      // Check if this is the last question - if so, let the TTS complete before finishing
       if (hasReachedQuestionLimit) {
         AppLogger.info(
-          'Voice Interview: Completing interview - Question limit reached (${updatedSession.currentQuestionNumber}/${updatedSession.config.numberOfQuestions})',
+          'Voice Interview: All questions completed (${updatedSession.currentQuestionNumber - 1}/${updatedSession.config.numberOfQuestions})',
         );
-        // Complete the interview when question limit is reached
-        add(CompleteInterview());
-        return;
+        AppLogger.info(
+          'Voice Interview: Starting final AI response TTS - will complete after speaking',
+        );
+
+        // Trigger text-to-speech for final AI response
+        // The completion will be handled in the TTS completion callback
+        add(SpeakResponse(aiResponse));
+        return; // Don't complete yet, let TTS finish first
       }
 
-      // Trigger text-to-speech for AI response
+      // Trigger text-to-speech for AI response (non-final questions)
       add(SpeakResponse(aiResponse));
     } catch (e) {
       emit(
@@ -328,6 +346,10 @@ class VoiceInterviewBloc
         // Stop listening using the speech service
         _handleSpeechUseCase.stopListening();
 
+        AppLogger.info(
+          'Voice Interview: STT stopped. Current text: "${currentState.currentListeningText}"',
+        );
+
         // If we have listening text, clean it and send as user response
         if (currentState.currentListeningText != null &&
             currentState.currentListeningText!.isNotEmpty) {
@@ -336,8 +358,25 @@ class VoiceInterviewBloc
             currentState.currentListeningText!,
           );
 
+          AppLogger.info('Voice Interview: Cleaned STT text: "$cleanedText"');
+
           // Validate the cleaned input
           if (VoiceCleaner.isValidInput(cleanedText)) {
+            // First emit the state with the final listening text to show it
+            emit(
+              VoiceInterviewReady(
+                session: currentState.session,
+                sessionId: currentState.sessionId,
+                currentListeningText: currentState.currentListeningText,
+                isListening: false,
+                isSpeaking: false,
+                isProcessing: false,
+              ),
+            );
+
+            // Small delay to ensure UI updates with the final text
+            await Future.delayed(const Duration(milliseconds: 300));
+
             add(SendUserResponse(cleanedText));
           } else {
             // If cleaned input is invalid, show error
@@ -349,19 +388,26 @@ class VoiceInterviewBloc
             );
             return;
           }
+        } else {
+          // No text captured
+          AppLogger.info(
+            'Voice Interview: STT completed but no text was captured',
+          );
+          emit(
+            VoiceInterviewReady(
+              session: currentState.session,
+              sessionId: currentState.sessionId,
+              currentListeningText: null,
+              isListening: false,
+              isSpeaking: false,
+              isProcessing: false,
+            ),
+          );
         }
-
-        emit(
-          VoiceInterviewReady(
-            session: currentState.session,
-            sessionId: currentState.sessionId,
-            currentListeningText: null,
-            isListening: false,
-            isSpeaking: false,
-            isProcessing: false,
-          ),
-        );
       } catch (e) {
+        AppLogger.error(
+          'Voice Interview: Error stopping listening: ${e.toString()}',
+        );
         emit(
           VoiceInterviewError(
             message: 'Failed to stop listening: ${e.toString()}',
@@ -456,7 +502,6 @@ class VoiceInterviewBloc
           difficulty: _mapDifficultyToAppwrite(session.config.difficulty),
           category: _mapCategoryToAppwrite(session.config.category),
           totalQuestions: session.config.numberOfQuestions,
-          timePerQuestion: 120,
           isCompleted: true,
           passed: percentageScore >= 60.0,
           score: overallScore,
@@ -535,7 +580,7 @@ class VoiceInterviewBloc
               evaluationResult['feedback'] as String? ??
               'No feedback available',
           aiCorrectAnswers:
-              (evaluationResult['aiCorrectAnswers'] as List<dynamic>?)
+              (evaluationResult['correctAnswers'] as List<dynamic>?)
                   ?.cast<String>() ??
               [],
           communicationScore: communicationScore,
@@ -561,7 +606,7 @@ class VoiceInterviewBloc
             contentScore: contentScore,
             overallScore: overallScore,
             aiCorrectAnswers:
-                (evaluationResult['aiCorrectAnswers'] as List<dynamic>?)
+                (evaluationResult['correctAnswers'] as List<dynamic>?)
                     ?.cast<String>() ??
                 [],
             totalQuestions: session.config.numberOfQuestions,
@@ -581,32 +626,8 @@ class VoiceInterviewBloc
             'VoiceInterviewBloc: Evaluation saved to database successfully with ID: ${savedEvaluation.evaluationId}',
           );
 
-          // Store conversation messages separately
-          try {
-            AppLogger.info(
-              'VoiceInterviewBloc: Storing conversation messages...',
-            );
-            for (int i = 0; i < session.messages.length; i++) {
-              final message = session.messages[i];
-              final voiceMessage = VoiceMessageModel(
-                messageId: '',
-                sessionId: updatedSession.sessionId,
-                messageType: message.type.toString().split('.').last,
-                content: message.content,
-                timestamp: message.timestamp,
-                sequenceNumber: i + 1,
-              );
-              await _databaseService.storeVoiceMessage(voiceMessage);
-            }
-            AppLogger.info(
-              'VoiceInterviewBloc: All conversation messages stored successfully',
-            );
-          } catch (e) {
-            AppLogger.error(
-              'VoiceInterviewBloc: Failed to store conversation messages: $e',
-            );
-            // Don't fail the entire flow for message storage issues
-          }
+          // Note: Conversation messages are already stored individually during the interview,
+          // so no need to store them again here to avoid duplicates
         } catch (e, stackTrace) {
           AppLogger.error(
             'VoiceInterviewBloc: Failed to save evaluation to database: $e',
@@ -624,13 +645,19 @@ class VoiceInterviewBloc
           return;
         }
 
-        // Emit evaluated state for navigation
+        // Emit completed state for navigation
+        AppLogger.info(
+          'VoiceInterviewBloc: ✅ Emitting VoiceInterviewCompleted state for navigation',
+        );
         emit(
-          VoiceInterviewEvaluated(
+          VoiceInterviewCompleted(
+            evaluation: evaluationResultObject,
             session: completedSession,
-            result: evaluationResultObject,
             sessionId: currentState.sessionId,
           ),
+        );
+        AppLogger.info(
+          'VoiceInterviewBloc: ✅ VoiceInterviewCompleted state emitted successfully',
         );
       }
     } catch (e) {
@@ -722,9 +749,26 @@ class VoiceInterviewBloc
           onComplete: () {
             if (!completionCalled) {
               AppLogger.info('VoiceInterviewBloc: TTS completed normally');
+
+              // Check if this is the last question's response
+              final isLastQuestion =
+                  currentState.session.currentQuestionNumber >
+                  currentState.session.config.numberOfQuestions;
+
               completionCalled = true;
               fallbackTimer.cancel();
-              add(CompleteSpeaking());
+
+              if (isLastQuestion) {
+                AppLogger.info(
+                  'Voice Interview: Last question TTS completed, adding delay before next step',
+                );
+                // Add extra delay for last question to let user process the final exchange
+                Future.delayed(const Duration(milliseconds: 1500), () {
+                  add(CompleteSpeaking());
+                });
+              } else {
+                add(CompleteSpeaking());
+              }
             }
           },
         );
@@ -764,6 +808,22 @@ class VoiceInterviewBloc
         'VoiceInterviewBloc: Completing speaking, setting isSpeaking to false',
       );
       _ttsManuallyControlled = false; // Reset flag when completing
+
+      // Check if this was the final question and complete the interview
+      final hasReachedQuestionLimit =
+          currentState.session.currentQuestionNumber >
+          currentState.session.config.numberOfQuestions;
+
+      if (hasReachedQuestionLimit) {
+        AppLogger.info(
+          'Voice Interview: Final AI response completed - triggering interview completion',
+        );
+        // Give a moment for the user to process the final response
+        await Future.delayed(const Duration(milliseconds: 1000));
+        add(CompleteInterview());
+        return; // Don't emit ready state, go straight to completion
+      }
+
       emit(
         currentState.copyWith(
           isListening: false,
@@ -1022,6 +1082,172 @@ class VoiceInterviewBloc
           sessionId: sessionId,
         ),
       );
+    }
+  }
+
+  // Helper method to get current question
+  String _getCurrentQuestion(InterviewSession session) {
+    final aiMessages =
+        session.messages
+            .where((message) => message.type == MessageType.ai)
+            .toList();
+
+    if (aiMessages.isNotEmpty) {
+      return aiMessages.last.content;
+    }
+
+    return 'Loading question...';
+  }
+
+  // TTS Control Handlers
+  Future<void> _onPlayTTS(
+    PlayTTS event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      final currentState = state as VoiceInterviewReady;
+
+      try {
+        if (currentState.isSpeakingPaused) {
+          // Resume if paused
+          AppLogger.info('VoiceInterviewBloc: Resuming TTS from Play button');
+          await _handleSpeechUseCase.resumeSpeaking();
+          emit(
+            currentState.copyWith(isSpeaking: true, isSpeakingPaused: false),
+          );
+        } else {
+          // If not currently speaking, try to replay the last question
+          AppLogger.info(
+            'VoiceInterviewBloc: Starting TTS from Play button (replay)',
+          );
+          final lastQuestion = _getCurrentQuestion(currentState.session);
+          if (lastQuestion.isNotEmpty) {
+            add(SpeakResponse(lastQuestion));
+          }
+        }
+      } catch (e) {
+        AppLogger.error('VoiceInterviewBloc: Error in PlayTTS: $e');
+        emit(
+          VoiceInterviewError(message: 'Failed to play TTS: ${e.toString()}'),
+        );
+      }
+    }
+  }
+
+  Future<void> _onPauseTTS(
+    PauseTTS event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      final currentState = state as VoiceInterviewReady;
+
+      try {
+        if (currentState.isSpeaking && !currentState.isSpeakingPaused) {
+          AppLogger.info('VoiceInterviewBloc: Pausing TTS from Pause button');
+          _ttsManuallyControlled = true; // Mark as manually controlled
+          await _handleSpeechUseCase.pauseSpeaking();
+          emit(currentState.copyWith(isSpeaking: true, isSpeakingPaused: true));
+        }
+      } catch (e) {
+        AppLogger.error('VoiceInterviewBloc: Error in PauseTTS: $e');
+        emit(
+          VoiceInterviewError(message: 'Failed to pause TTS: ${e.toString()}'),
+        );
+      }
+    }
+  }
+
+  Future<void> _onStopTTS(
+    StopTTS event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      final currentState = state as VoiceInterviewReady;
+
+      try {
+        if (currentState.isSpeaking) {
+          AppLogger.info('VoiceInterviewBloc: Stopping TTS from Stop button');
+          _ttsManuallyControlled = true; // Mark as manually controlled
+          await _handleSpeechUseCase.stopSpeaking();
+          emit(
+            currentState.copyWith(isSpeaking: false, isSpeakingPaused: false),
+          );
+        }
+      } catch (e) {
+        AppLogger.error('VoiceInterviewBloc: Error in StopTTS: $e');
+        emit(
+          VoiceInterviewError(message: 'Failed to stop TTS: ${e.toString()}'),
+        );
+      }
+    }
+  }
+
+  Future<void> _onReplayTTS(
+    ReplayTTS event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      final currentState = state as VoiceInterviewReady;
+
+      try {
+        AppLogger.info('VoiceInterviewBloc: Replaying TTS from Replay button');
+        // Stop current TTS if playing
+        if (currentState.isSpeaking) {
+          await _handleSpeechUseCase.stopSpeaking();
+        }
+
+        // Get the current question and replay it
+        final currentQuestion = _getCurrentQuestion(currentState.session);
+        if (currentQuestion.isNotEmpty &&
+            currentQuestion != 'Loading question...') {
+          add(SpeakResponse(currentQuestion));
+        } else {
+          AppLogger.warn('VoiceInterviewBloc: No question available to replay');
+          emit(VoiceInterviewError(message: 'No question available to replay'));
+        }
+      } catch (e) {
+        AppLogger.error('VoiceInterviewBloc: Error in ReplayTTS: $e');
+        emit(
+          VoiceInterviewError(message: 'Failed to replay TTS: ${e.toString()}'),
+        );
+      }
+    }
+  }
+
+  // Interview Control Handlers
+  Future<void> _onEndInterview(
+    EndInterview event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      add(CompleteInterview()); // Trigger the existing completion logic
+    }
+  }
+
+  Future<void> _onRetryCurrentQuestion(
+    RetryCurrentQuestion event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewError) {
+      // Reset to ready state and replay the current question
+      emit(VoiceInterviewLoading());
+      // Add logic to retry the current question
+      // For now, emit error asking user to restart
+      emit(
+        VoiceInterviewError(
+          message: 'Please restart the interview to continue.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _onUpdateTranscriptText(
+    UpdateTranscriptText event,
+    Emitter<VoiceInterviewState> emit,
+  ) async {
+    if (state is VoiceInterviewReady) {
+      final currentState = state as VoiceInterviewReady;
+      emit(currentState.copyWith(currentListeningText: event.text));
     }
   }
 }

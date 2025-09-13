@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mock_interview/features/home/presentation/view/tabs/history.dart';
 import 'package:mock_interview/features/history/presentation/cubit/history_cubit.dart';
 import 'package:mock_interview/core/di/injection_container.dart';
 import 'package:mock_interview/features/home/presentation/view/tabs/home.dart';
 import 'package:mock_interview/features/home/presentation/view/tabs/profile_settings.dart';
 import 'package:mock_interview/features/home/presentation/widgets/custom_bottom_navigation.dart';
-import 'package:mock_interview/core/navigation/routes_name.dart';
 import '../../cubit/navigation_cubit.dart';
 import '../../cubit/navigation_state.dart';
 

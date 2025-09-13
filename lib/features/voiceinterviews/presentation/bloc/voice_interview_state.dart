@@ -161,3 +161,19 @@ class VoiceInterviewEvaluationError extends VoiceInterviewState {
   @override
   List<Object?> get props => [message, session, sessionId];
 }
+
+// Completion State
+class VoiceInterviewCompleted extends VoiceInterviewState {
+  final VoiceInterviewEvaluationResult evaluation;
+  final InterviewSession session;
+  final String sessionId;
+
+  const VoiceInterviewCompleted({
+    required this.evaluation,
+    required this.session,
+    required this.sessionId,
+  });
+
+  @override
+  List<Object?> get props => [evaluation, session, sessionId];
+}

@@ -1,274 +1,34 @@
 {
   "project_info": {
-    "project_number": "87062363095",
-    "firebase_url": "https://bookmyspot-c8bdb.firebaseio.com",
-    "project_id": "bookmyspot-c8bdb",
-    "storage_bucket": "bookmyspot-c8bdb.firebasestorage.app"
+    "project_number": "371590192079",
+    "project_id": "mock-interview-4975f",
+    "storage_bucket": "mock-interview-4975f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:87062363095:android:f469b3b903c3ddc49ce992",
-        "android_client_info": {
-          "package_name": "com.BMS.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "87062363095-429onp362emqfk9ehv03l5n9j1pl9b2j.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "01252526f5c2219253b9f00455abb8e4f9da7061"
-          }
-        },
-        {
-          "client_id": "87062363095-73jckncnon14mm33gbpjoh1l9bqif41p.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "0a8265795ce658552635a9ed0aa6135dd32c54e8"
-          }
-        },
-        {
-          "client_id": "87062363095-fcih890k0oco2prc91uebdv9avj15cuh.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "4a558696438e8d5df7043bc24f121ed7e2c29d97"
-          }
-        },
-        {
-          "client_id": "87062363095-i24ct1e36gq6kmak72pm1rgfcpre2rei.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "51d22cc491dbc282d4e369997b57ae9b21cb4f61"
-          }
-        },
-        {
-          "client_id": "87062363095-jd3pdfj58ic9sbvjhfe3s23n16p8514u.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "6cad7d3992d97283c25a1485292ac293a9ab7045"
-          }
-        },
-        {
-          "client_id": "87062363095-p178vv7ie3eb3vv4vouancti6avjpdj7.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.BMS.app",
-            "certificate_hash": "17a8a4ee0219218792c61daf647f403db98f1831"
-          }
-        },
-        {
-          "client_id": "87062363095-mrde6nmhi2d2v9ptrfotoqdpgu2a26pr.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAMWOBzXQOa1G1rCW5sZITUr-Z4uHXQcU4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "87062363095-4t2kduld3jkaqjsjbeic2c23t2fp92ka.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "87062363095-d2ak3lfdnbk9l2a4b83v4pjtu5tort17.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bookmyspot.salonbooking"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:87062363095:android:b7ed28f99d665b119ce992",
-        "android_client_info": {
-          "package_name": "com.bookmyspot.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "87062363095-mrde6nmhi2d2v9ptrfotoqdpgu2a26pr.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAMWOBzXQOa1G1rCW5sZITUr-Z4uHXQcU4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "87062363095-4t2kduld3jkaqjsjbeic2c23t2fp92ka.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "87062363095-d2ak3lfdnbk9l2a4b83v4pjtu5tort17.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bookmyspot.salonbooking"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:87062363095:android:f162b11731dd08bc9ce992",
-        "android_client_info": {
-          "package_name": "com.bookmyspot.salonadmin"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "87062363095-55k8coiejvkk5ggc68jfhbh6hmt3bk62.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bookmyspot.salonadmin",
-            "certificate_hash": "0a8265795ce658552635a9ed0aa6135dd32c54e8"
-          }
-        },
-        {
-          "client_id": "87062363095-klqkq29sa1lijae8d2ljd9sm5b603de9.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bookmyspot.salonadmin",
-            "certificate_hash": "01252526f5c2219253b9f00455abb8e4f9da7061"
-          }
-        },
-        {
-          "client_id": "87062363095-mrde6nmhi2d2v9ptrfotoqdpgu2a26pr.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAMWOBzXQOa1G1rCW5sZITUr-Z4uHXQcU4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "87062363095-4t2kduld3jkaqjsjbeic2c23t2fp92ka.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "87062363095-d2ak3lfdnbk9l2a4b83v4pjtu5tort17.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bookmyspot.salonbooking"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:87062363095:android:71082627af0ac6779ce992",
-        "android_client_info": {
-          "package_name": "com.bookmyspotvendor.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "87062363095-0t7f8es54hej621g3lukhfv12s2brdsf.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bookmyspotvendor.app",
-            "certificate_hash": "17a8a4ee0219218792c61daf647f403db98f1831"
-          }
-        },
-        {
-          "client_id": "87062363095-5qfmnv8k1rbfj1t6fgfh9q6d55epkr4n.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bookmyspotvendor.app",
-            "certificate_hash": "0a8265795ce658552635a9ed0aa6135dd32c54e8"
-          }
-        },
-        {
-          "client_id": "87062363095-8tobvp2uuh8fucaon4dkfjv0b6c30osc.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.bookmyspotvendor.app",
-            "certificate_hash": "2c918fe556915dff4a5fca9cf721eaaf381b6d20"
-          }
-        },
-        {
-          "client_id": "87062363095-mrde6nmhi2d2v9ptrfotoqdpgu2a26pr.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAMWOBzXQOa1G1rCW5sZITUr-Z4uHXQcU4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "87062363095-4t2kduld3jkaqjsjbeic2c23t2fp92ka.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "87062363095-d2ak3lfdnbk9l2a4b83v4pjtu5tort17.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bookmyspot.salonbooking"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:87062363095:android:a311d8cbedca26789ce992",
+        "mobilesdk_app_id": "1:371590192079:android:dd0a180ddd6ec558f510ba",
         "android_client_info": {
           "package_name": "com.zyphram.InterviewAce"
         }
       },
       "oauth_client": [
         {
-          "client_id": "87062363095-mrde6nmhi2d2v9ptrfotoqdpgu2a26pr.apps.googleusercontent.com",
+          "client_id": "371590192079-earn7itu6rd814ieh3015cu99715u1h4.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAMWOBzXQOa1G1rCW5sZITUr-Z4uHXQcU4"
+          "current_key": "AIzaSyAZV8bPDx8mQLRaOnAQc17aZNYHruDerJc"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "87062363095-4t2kduld3jkaqjsjbeic2c23t2fp92ka.apps.googleusercontent.com",
+              "client_id": "371590192079-earn7itu6rd814ieh3015cu99715u1h4.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "87062363095-d2ak3lfdnbk9l2a4b83v4pjtu5tort17.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.bookmyspot.salonbooking"
-              }
             }
           ]
         }

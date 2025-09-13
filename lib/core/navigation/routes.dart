@@ -13,6 +13,8 @@ import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_inte
 import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_result_view.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/view/voice_interview_setup_view.dart';
 import 'package:mock_interview/features/voiceinterviews/presentation/view/interview_result_view.dart';
+import 'package:mock_interview/features/voiceinterviews/data/models/voice_interview_evaluation_result.dart';
+import 'package:mock_interview/core/models/voice_evaluation_model.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -84,10 +86,36 @@ class AppRouter {
       case AppRoutes.voiceResultView:
         if (settings.arguments != null) {
           final args = settings.arguments as Map<String, dynamic>;
+
+          // Convert VoiceInterviewEvaluationResult to VoiceEvaluationModel if provided
+          VoiceEvaluationModel? evaluation;
+          if (args['evaluation'] != null) {
+            final evalResult =
+                args['evaluation'] as VoiceInterviewEvaluationResult;
+            evaluation = VoiceEvaluationModel(
+              evaluationId: '', // Generate empty ID since it's not stored yet
+              sessionId: evalResult.sessionId,
+              feedback: evalResult.feedback,
+              communicationScore: evalResult.communicationScore,
+              contentScore: evalResult.contentScore,
+              overallScore: evalResult.overallScore,
+              aiCorrectAnswers: evalResult.aiCorrectAnswers,
+              totalQuestions: evalResult.totalQuestions,
+              finalScore: evalResult.finalScore,
+              percentage: evalResult.percentage,
+              passed: evalResult.passed,
+              sessionComplete: evalResult.sessionComplete,
+              completedAt: evalResult.completedAt,
+              conversationMessages:
+                  [], // Empty for now, will be populated from session messages
+            );
+          }
+
           return _createHeroRoute(
             InterviewResultView(
               session: args['session'],
               config: args['config'],
+              existingEvaluation: evaluation,
             ),
             heroTag: 'voice_result',
           );

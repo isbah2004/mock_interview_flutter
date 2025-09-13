@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mock_interview/core/utils/color_compat.dart';
 import 'package:mock_interview/features/mcqinterviews/data/models/evaluation_result_model.dart';
-import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view.dart';
 import 'package:mock_interview/features/ads/presentation/services/ad_integration_service.dart';
 import 'package:mock_interview/core/di/injection_container.dart';
 import 'package:mock_interview/core/utils/app_logger.dart';

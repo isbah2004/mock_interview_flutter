@@ -4,13 +4,13 @@ import 'package:mock_interview/features/voiceinterviews/domain/entities/intervie
 class InterviewSession {
   final InterviewConfig config;
   final List<InterviewMessage> messages;
-  final int currentQuestionNumber;
+  final int currentQuestionNumber, numberOfQuestions;
   final InterviewStatus status;
   final bool isListening;
   final bool isSpeaking;
   final String currentUserResponse;
 
-  const InterviewSession({
+  const InterviewSession({required this.numberOfQuestions, 
     required this.config,
     this.messages = const [],
     this.currentQuestionNumber = 0,
@@ -28,6 +28,7 @@ class InterviewSession {
     bool? isListening,
     bool? isSpeaking,
     String? currentUserResponse,
+    int? numberOfQuestions,
   }) {
     return InterviewSession(
       config: config ?? this.config,
@@ -37,7 +38,7 @@ class InterviewSession {
       status: status ?? this.status,
       isListening: isListening ?? this.isListening,
       isSpeaking: isSpeaking ?? this.isSpeaking,
-      currentUserResponse: currentUserResponse ?? this.currentUserResponse,
+      currentUserResponse: currentUserResponse ?? this.currentUserResponse, numberOfQuestions: numberOfQuestions ?? this.numberOfQuestions,
     );
   }
 
