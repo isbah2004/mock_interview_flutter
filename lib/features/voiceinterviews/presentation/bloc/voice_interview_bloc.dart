@@ -655,6 +655,19 @@ class VoiceInterviewBloc
           return;
         }
 
+        // Stop any ongoing TTS before completing the interview
+        try {
+          await _handleSpeechUseCase.stopSpeaking();
+          AppLogger.info(
+            'VoiceInterviewBloc: TTS stopped before interview completion',
+          );
+        } catch (e) {
+          AppLogger.error(
+            'VoiceInterviewBloc: Failed to stop TTS before completion: $e',
+          );
+          // Continue anyway - don't block completion due to TTS issues
+        }
+
         // Emit completed state for navigation
         AppLogger.info(
           'VoiceInterviewBloc: ✅ Emitting VoiceInterviewCompleted state for navigation',

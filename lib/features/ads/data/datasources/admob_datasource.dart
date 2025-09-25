@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter/foundation.dart'; // Import for kDebugMode
 import '../../../../core/constants/app_secrets.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../../core/errors/failures.dart';
@@ -17,13 +18,18 @@ class AdMobDataSource implements AdRemoteDataSource {
   InterstitialAd? _interstitialAd;
 
   // Test ID for development
-  String get _interstitialAdUnitId {
-    return 'ca-app-pub-3940256099942544/1033173712'; // Test Ad Unit ID
+  String get _testAdUnitId {
+    return 'ca-app-pub-3940256099942544/1033173712'; // Google's official test ad unit ID
+  }
+
+  // Production ad unit ID - replace with your actual AdMob ad unit ID from AdMob console
+  String get _productionAdUnitId {
+    return 'ca-app-pub-1162581328240876/7157837962'; // Replace with your real production ad unit ID
   }
 
   String get _adUnitId {
-    // Change this to _productionAdUnitId for production
-    return _interstitialAdUnitId; // Use test ID for now
+    // Use test ID in debug mode, production ID in release mode
+    return kDebugMode ? _testAdUnitId : _productionAdUnitId;
   }
 
   @override
@@ -34,15 +40,20 @@ class AdMobDataSource implements AdRemoteDataSource {
         'AdMobDataSource: MobileAds initialized: ${status.toString()}',
       );
 
-      // Configure request settings. Include test device IDs in non-production.
+      // Configure request settings - only add test devices in DEBUG mode
       final List<String> testDevices = [];
-      if (!AppSecrets.isProduction) {
-        // Add the known test device id discovered from logs.
+
+      // Only add test device in debug/development builds
+      if (kDebugMode) {
+        // Use kDebugMode instead of AppSecrets.isProduction
         testDevices.add('BFC06E371D2250F1040DA7AAD1258D5B');
-        AppLogger.info('AdMobDataSource: adding testDeviceIds: $testDevices');
+        AppLogger.info(
+          'AdMobDataSource: adding testDeviceIds for DEBUG: $testDevices',
+        );
+      } else {
+        AppLogger.info('AdMobDataSource: PRODUCTION mode - no test devices');
       }
 
-      // Configure request settings
       RequestConfiguration requestConfiguration = RequestConfiguration(
         testDeviceIds: testDevices,
         tagForChildDirectedTreatment: TagForChildDirectedTreatment.unspecified,

@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mock_interview/core/models/mcq_question_model.dart';
 import 'package:mock_interview/core/utils/color_compat.dart';
+import 'package:mock_interview/core/navigation/routes_name.dart';
+import 'package:mock_interview/core/utils/app_logger.dart';
 import '../bloc/unified_mcq_interview_bloc.dart';
 import '../bloc/unified_mcq_interview_event.dart';
 import '../bloc/unified_mcq_interview_state.dart';
 import '../widgets/mcq_progress_widget.dart';
+import '../../data/models/evaluation_result_model.dart';
+import '../args/mcq_interview_result_args.dart';
 // Keep only widgets used directly by this view
 
 class McqInterviewView extends StatelessWidget {
@@ -89,27 +93,90 @@ class _McqInterviewContentState extends State<McqInterviewContent>
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      body: BlocBuilder<McqInterviewBloc, UnifiedMcqInterviewState>(
-        builder: (context, state) {
-          // Stop pulse animation when not in saving state
-          if (state is! SavingInterviewResultState) {
-            _pulseController.stop();
-          }
+      body: BlocListener<McqInterviewBloc, UnifiedMcqInterviewState>(
+        listener: (context, state) {
+          if (state is McqInterviewCompletedState) {
+            // Navigate to results view with the completed interview data
+            final evaluationResult = EvaluationResultModel(
+              sessionId: 'mcq_${DateTime.now().millisecondsSinceEpoch}',
+              totalQuestions: state.totalQuestions,
+              results: _buildQuestionResults(state.questions, state.answers),
+              finalScore: state.correctAnswers.toDouble(),
+              percentage: (state.correctAnswers / state.totalQuestions) * 100,
+              passed: (state.correctAnswers / state.totalQuestions) >= 0.6,
+              sessionComplete: true,
+              completedAt: DateTime.now(),
+            );
 
-          if (state is McqInterviewInProgressState) {
-            return _buildInterviewContent(context, state);
-          } else if (state is SavingInterviewResultState) {
-            return _buildSavingContent(context, state);
-          } else if (state is McqInterviewErrorState) {
-            return _buildErrorContent(context, state.error);
-          } else {
-            return Center(
-              child: CircularProgressIndicator(
-                color: Theme.of(context).colorScheme.primary,
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.mcqInterviewResultView,
+              arguments: InterviewResultArgs(
+                evaluationResult: evaluationResult,
               ),
             );
+          } else if (state is InterviewResultSavedState) {
+            // Alternative navigation path if we only have saved state
+            AppLogger.info(
+              'MCQ: Interview saved with ID: ${state.interviewId}',
+            );
+            // We could navigate here too, but McqInterviewCompletedState should handle most cases
           }
         },
+        child: BlocBuilder<McqInterviewBloc, UnifiedMcqInterviewState>(
+          builder: (context, state) {
+            // Stop pulse animation when not in saving state
+            if (state is! SavingInterviewResultState) {
+              _pulseController.stop();
+            }
+
+            if (state is McqInterviewInProgressState) {
+              return _buildInterviewContent(context, state);
+            } else if (state is SavingInterviewResultState) {
+              return _buildSavingContent(context, state);
+            } else if (state is McqInterviewErrorState) {
+              return _buildErrorContent(context, state.error);
+            } else if (state is McqInterviewCompletedState) {
+              // Show a brief success message while navigation happens
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Interview Complete!',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Redirecting to results...'),
+                  ],
+                ),
+              );
+            } else if (state is InterviewResultSavedState) {
+              // Show a brief success message
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.save_alt, color: Colors.green, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Results Saved!',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              );
+            }
+          },
+        ),
       ),
     );
   }
@@ -485,5 +552,35 @@ class _McqInterviewContentState extends State<McqInterviewContent>
         ),
       ),
     );
+  }
+
+  List<QuestionResultModel> _buildQuestionResults(
+    List<McqQuestionModel> questions,
+    List<String?> answers,
+  ) {
+    final results = <QuestionResultModel>[];
+
+    for (int i = 0; i < questions.length; i++) {
+      final question = questions[i];
+      final userAnswer = i < answers.length ? answers[i] ?? '' : '';
+      final isCorrect = userAnswer == question.correctAnswer;
+
+      results.add(
+        QuestionResultModel(
+          questionId: question.questionId,
+          questionNumber: i + 1,
+          question: question.question,
+          userAnswer: userAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect: isCorrect,
+          score: isCorrect ? 1 : 0,
+          explanation: question.explanation,
+          topic: question.topic,
+          difficulty: question.difficulty,
+        ),
+      );
+    }
+
+    return results;
   }
 }

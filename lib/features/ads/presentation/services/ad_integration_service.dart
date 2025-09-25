@@ -64,7 +64,7 @@ class AdIntegrationService {
 
       // Request load
       const String googleTestInterstitialAdUnit =
-          'ca-app-pub-3940256099942544/1033173712';
+          'ca-app-pub-1162581328240876/7157837962';
       _adBloc.add(const LoadInterstitialAdEvent(googleTestInterstitialAdUnit));
       AppLogger.debug(
         'AdIntegrationService: LoadInterstitialAdEvent dispatched for $googleTestInterstitialAdUnit',

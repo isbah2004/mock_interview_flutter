@@ -23,6 +23,7 @@ class HistoryHeader extends StatelessWidget {
         final stats = [
           HistoryStatModel(
             value: averageScore.toStringAsFixed(0),
+            // value: 80.toString(),
             label: 'Avg Score',
             icon: Icons.emoji_events_rounded,
             isPrimary: true,

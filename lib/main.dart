@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 // import 'package:mock_interview/features/ads/presentation/pages/ad_demo_page.dart';
@@ -23,9 +24,13 @@ import 'package:mock_interview/features/voiceinterviews/presentation/bloc/voice_
 import 'package:mock_interview/features/home/presentation/bloc/home_bloc.dart';
 import 'package:mock_interview/features/home/cubit/navigation_cubit.dart';
 import 'package:mock_interview/features/ads/presentation/services/ad_integration_service.dart';
+import 'package:mock_interview/core/utils/app_logger.dart';
+import 'package:mock_interview/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Preserve the native splash screen
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize GetStorage first
   await GetStorage.init();
@@ -45,7 +50,7 @@ void main() async {
     await adService.initialize();
   } catch (e) {
     // Ad initialization is non-critical, continue if it fails
-    debugPrint('Ad initialization failed: $e');
+    AppLogger.warn('Ad initialization failed: $e');
   }
 
   runApp(MyApp());
@@ -61,6 +66,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -112,6 +121,9 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<NavigationCubit>(
           create: (context) => serviceLocator<NavigationCubit>(),
         ),
+        BlocProvider<OnboardingCubit>(
+          create: (context) => serviceLocator<OnboardingCubit>(),
+        ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
@@ -121,8 +133,7 @@ class _MyAppState extends State<MyApp> {
             theme: LightTheme.theme,
             // home: AdDemoPage(),
             darkTheme: DarkTheme.theme,
-            themeMode:
-                !themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode: themeState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             // themeMode: ThemeMode.light,
             initialRoute: AppRoutes.splash,
             onGenerateRoute: AppRouter.generateRoute,

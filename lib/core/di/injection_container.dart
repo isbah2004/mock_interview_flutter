@@ -48,6 +48,7 @@ import 'package:mock_interview/features/home/cubit/navigation_cubit.dart';
 import 'package:mock_interview/features/history/data/datasources/history_remote_data_source.dart';
 import 'package:mock_interview/features/history/data/repositories/history_repository_impl.dart';
 import 'package:mock_interview/features/history/domain/repositories/history_repository.dart';
+import 'package:mock_interview/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:mock_interview/features/history/domain/usecases/get_history_usecase.dart';
 import 'package:mock_interview/features/history/presentation/cubit/history_cubit.dart';
 import 'package:mock_interview/features/ads/data/datasources/admob_datasource.dart';
@@ -326,4 +327,7 @@ Future<void> initializeDependencies() async {
   serviceLocator.registerFactory<HistoryCubit>(
     () => HistoryCubit(getHistoryUseCase: serviceLocator<GetHistoryUseCase>()),
   );
+
+  // Onboarding Feature
+  serviceLocator.registerFactory<OnboardingCubit>(() => OnboardingCubit());
 }

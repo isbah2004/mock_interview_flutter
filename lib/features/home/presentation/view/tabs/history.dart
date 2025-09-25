@@ -10,6 +10,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mock_interview/features/history/presentation/cubit/history_cubit.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_cubit.dart';
 import 'package:mock_interview/core/cubits/usercubit/user_state.dart';
+import '../../../cubit/navigation_cubit.dart';
+import '../../../cubit/navigation_state.dart';
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
@@ -18,18 +20,53 @@ class HistoryTab extends StatefulWidget {
   State<HistoryTab> createState() => _HistoryTabState();
 }
 
-class _HistoryTabState extends State<HistoryTab> {
+class _HistoryTabState extends State<HistoryTab> with WidgetsBindingObserver {
+  DateTime? _lastRefresh;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<UserCubit>().currentUser?.id;
       dev.log('HistoryTab initState - userId: $userId', name: 'HistoryTab');
       if (userId != null &&
           context.read<HistoryCubit>().state is HistoryInitial) {
         context.read<HistoryCubit>().load(userId);
+        _lastRefresh = DateTime.now();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Refresh history when app becomes active (user returns from result screen)
+      _refreshHistoryIfNeeded();
+    }
+  }
+
+  void _refreshHistoryIfNeeded() {
+    final userId = context.read<UserCubit>().currentUser?.id;
+    if (userId != null && mounted) {
+      final now = DateTime.now();
+      // Only refresh if it's been more than 2 seconds since last refresh to avoid spam
+      if (_lastRefresh == null || now.difference(_lastRefresh!).inSeconds > 2) {
+        dev.log(
+          'Refreshing history due to app lifecycle change',
+          name: 'HistoryTab',
+        );
+        context.read<HistoryCubit>().refresh(userId);
+        _lastRefresh = now;
+      }
+    }
   }
 
   String _formatDate(DateTime date) =>
@@ -42,27 +79,49 @@ class _HistoryTabState extends State<HistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<UserCubit, UserState>(
-      listenWhen:
-          (prev, curr) => prev is! UserAvailable && curr is UserAvailable,
-      listener: (context, state) {
-        if (state is UserAvailable) {
-          final userId = state.user.id;
-          final historyState = context.read<HistoryCubit>().state;
-          final shouldLoad =
-              historyState is HistoryInitial ||
-              (historyState is HistoryLoaded &&
-                  historyState.sessions.isEmpty) ||
-              historyState is HistoryError;
-          if (shouldLoad) {
-            dev.log(
-              'User became available, loading history for $userId',
-              name: 'HistoryTab',
-            );
-            context.read<HistoryCubit>().load(userId);
-          }
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<UserCubit, UserState>(
+          listenWhen:
+              (prev, curr) => prev is! UserAvailable && curr is UserAvailable,
+          listener: (context, state) {
+            if (state is UserAvailable) {
+              final userId = state.user.id;
+              final historyState = context.read<HistoryCubit>().state;
+              final shouldLoad =
+                  historyState is HistoryInitial ||
+                  (historyState is HistoryLoaded &&
+                      historyState.sessions.isEmpty) ||
+                  historyState is HistoryError;
+              if (shouldLoad) {
+                dev.log(
+                  'User became available, loading history for $userId',
+                  name: 'HistoryTab',
+                );
+                context.read<HistoryCubit>().load(userId);
+              }
+            }
+          },
+        ),
+        BlocListener<NavigationCubit, NavigationState>(
+          listenWhen: (prev, curr) {
+            // Listen when switching TO the history tab (index 1)
+            if (prev is NavigationChanged && curr is NavigationChanged) {
+              return prev.currentIndex != 1 && curr.currentIndex == 1;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is NavigationChanged && state.currentIndex == 1) {
+              dev.log(
+                'Switched to history tab, refreshing data',
+                name: 'HistoryTab',
+              );
+              _refreshHistoryIfNeeded();
+            }
+          },
+        ),
+      ],
       child: GradientBackground(
         child: SafeArea(
           child: Column(
@@ -80,7 +139,24 @@ class _HistoryTabState extends State<HistoryTab> {
                         ),
                       );
                     } else if (state is HistoryError) {
-                      return Center(child: Text('Error: ${state.message}'));
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          final userId =
+                              context.read<UserCubit>().currentUser?.id;
+                          if (userId != null) {
+                            context.read<HistoryCubit>().refresh(userId);
+                          }
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.5,
+                            child: Center(
+                              child: Text('Error: ${state.message}'),
+                            ),
+                          ),
+                        ),
+                      );
                     } else if (state is HistoryLoaded) {
                       // Filter only completed interviews
                       final completedSessions =
@@ -89,7 +165,22 @@ class _HistoryTabState extends State<HistoryTab> {
                               .toList();
 
                       if (completedSessions.isEmpty) {
-                        return _buildEnhancedEmptyState();
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            final userId =
+                                context.read<UserCubit>().currentUser?.id;
+                            if (userId != null) {
+                              context.read<HistoryCubit>().refresh(userId);
+                            }
+                          },
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: _buildEnhancedEmptyState(),
+                            ),
+                          ),
+                        );
                       }
                       final display =
                           completedSessions.map((s) {
@@ -129,16 +220,53 @@ class _HistoryTabState extends State<HistoryTab> {
                               .map((m) => InterviewHistoryModel.fromMap(m))
                               .toList();
 
-                      return HistoryInterviewList(interviewHistory: interviews);
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          final userId =
+                              context.read<UserCubit>().currentUser?.id;
+                          if (userId != null) {
+                            context.read<HistoryCubit>().refresh(userId);
+                          }
+                        },
+                        child: HistoryInterviewList(
+                          interviewHistory: interviews,
+                        ),
+                      );
                     }
                     // HistoryInitial fallback
                     final hasUser = context.read<UserCubit>().hasUser;
                     if (!hasUser) {
-                      return _buildEnhancedEmptyState(
-                        message: 'Sign in to see your interview history',
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          // No user, nothing to refresh
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.5,
+                            child: _buildEnhancedEmptyState(
+                              message: 'Sign in to see your interview history',
+                            ),
+                          ),
+                        ),
                       );
                     }
-                    return _buildEnhancedEmptyState();
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        final userId =
+                            context.read<UserCubit>().currentUser?.id;
+                        if (userId != null) {
+                          context.read<HistoryCubit>().load(userId);
+                        }
+                      },
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: _buildEnhancedEmptyState(),
+                        ),
+                      ),
+                    );
                   },
                 ),
               ),

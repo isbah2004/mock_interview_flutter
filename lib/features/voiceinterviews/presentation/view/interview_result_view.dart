@@ -11,8 +11,9 @@ import '../../../../core/models/voice_evaluation_model.dart';
 import '../../../../core/services/unified_database_service.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../ads/presentation/services/ad_integration_service.dart';
+import '../../../../core/services/flutter_speech_service.dart';
 
-class InterviewResultView extends StatelessWidget {
+class InterviewResultView extends StatefulWidget {
   final InterviewSession session;
   final InterviewConfig config;
   final VoiceEvaluationModel? existingEvaluation;
@@ -25,11 +26,41 @@ class InterviewResultView extends StatelessWidget {
   });
 
   @override
+  State<InterviewResultView> createState() => _InterviewResultViewState();
+}
+
+class _InterviewResultViewState extends State<InterviewResultView> {
+  late SpeechService _speechService;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Get the speech service instance
+    _speechService = di.serviceLocator<SpeechService>();
+
+    // Stop TTS immediately when entering the results view
+    _stopTTSImmediately();
+  }
+
+  Future<void> _stopTTSImmediately() async {
+    try {
+      // Stop any ongoing TTS speech
+      await _speechService.stopSpeaking();
+      AppLogger.info('TTS stopped on InterviewResultView initialization');
+    } catch (e) {
+      AppLogger.error(
+        'Error stopping TTS on InterviewResultView initialization: $e',
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return _InterviewResultViewContent(
-      session: session,
-      config: config,
-      existingEvaluation: existingEvaluation,
+      session: widget.session,
+      config: widget.config,
+      existingEvaluation: widget.existingEvaluation,
     );
   }
 }
@@ -488,9 +519,6 @@ class _InterviewResultViewContent extends StatelessWidget {
             const SizedBox(height: 24),
           ],
 
-          // Action Buttons
-          _buildActionButtons(context),
-
           const SizedBox(height: 20),
         ],
       ),
@@ -777,56 +805,6 @@ class _InterviewResultViewContent extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed:
-                () => Navigator.of(context).popUntil((route) => route.isFirst),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey.shade400),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text(
-              'Back to Home',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed:
-                () => Navigator.of(context).popUntil((route) => route.isFirst),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Try Again',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

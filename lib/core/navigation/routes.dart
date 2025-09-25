@@ -6,6 +6,7 @@ import 'package:mock_interview/features/auth/presentation/view/reset_password.da
 import 'package:mock_interview/features/auth/presentation/view/signup_view.dart';
 import 'package:mock_interview/features/auth/presentation/view/splash_view.dart';
 import 'package:mock_interview/features/home/presentation/view/home_view.dart';
+import 'package:mock_interview/features/onboarding/presentation/view/onboarding_view.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/view/mcq_interview_setup_view.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_result_args.dart';
 import 'package:mock_interview/features/mcqinterviews/presentation/args/mcq_interview_args.dart';
@@ -22,6 +23,9 @@ class AppRouter {
       // Auth routes - no animation changes for splash as requested
       case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashView());
+
+      case AppRoutes.onboarding:
+        return MaterialPageRoute(builder: (_) => const OnboardingView());
 
       // All other routes use hero navigation with fade transition
       case AppRoutes.login:

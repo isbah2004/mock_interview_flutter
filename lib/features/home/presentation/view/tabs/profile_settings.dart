@@ -60,7 +60,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
         }
       }
     } catch (e) {
-  AppLogger.error('Error loading data: $e');
+      AppLogger.error('Error loading data: $e');
       // Try to create missing profile if needed
       final userCubit = context.read<UserCubit>();
       final currentUser = userCubit.currentUser;
@@ -119,7 +119,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           break;
       }
     } catch (e) {
-  AppLogger.error('Error updating setting $setting: $e');
+      AppLogger.error('Error updating setting $setting: $e');
     }
   }
 
@@ -142,7 +142,9 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
           content: Text(
             'Are you sure you want to logout?',
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacityCompat(0.7),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacityCompat(0.7),
             ),
           ),
           actions: [
@@ -153,7 +155,7 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                 style: TextStyle(
                   color: Theme.of(
                     context,
-                                  ).colorScheme.onSurface.withOpacityCompat(0.6),
+                  ).colorScheme.onSurface.withOpacityCompat(0.6),
                 ),
               ),
             ),
@@ -298,13 +300,6 @@ class _ProfileSettingsTabState extends State<ProfileSettingsTab> {
                           'Average Score',
                           '${userProfile?['averageScore'] ?? 0}%',
                           Icons.star,
-                          colorScheme,
-                          textTheme,
-                        ),
-                        _buildStatItem(
-                          'Best Score',
-                          '${userProfile?['bestScore'] ?? 0}%',
-                          Icons.trending_up,
                           colorScheme,
                           textTheme,
                         ),

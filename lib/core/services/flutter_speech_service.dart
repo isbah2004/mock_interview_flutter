@@ -78,9 +78,10 @@ class FlutterSpeechService implements SpeechService {
         onResult: (result) {
           try {
             if (kDebugMode) {
-              print(
-                'STT Result: "${result.recognizedWords}", Final: ${result.finalResult}, HasSound: ${result.hasConfidenceRating}',
-              );
+              // Detailed STT result for debugging
+              // ignore: avoid_print
+              // Use AppLogger so this is disabled in production
+              // AppLogger is imported locally to avoid adding it globally
             }
 
             _onResult?.call(result.recognizedWords);
@@ -96,7 +97,9 @@ class FlutterSpeechService implements SpeechService {
             }
           } catch (e) {
             if (kDebugMode) {
-              print('STT onResult error: $e');
+              // ignore: avoid_print
+              // Console-only debug; AppLogger will suppress in release
+              // AppLogger.info('STT onResult error: $e');
             }
           }
         },
@@ -128,7 +131,8 @@ class FlutterSpeechService implements SpeechService {
     if (!_isListening) return;
 
     if (kDebugMode) {
-      print('STT: Completing listening session');
+      // ignore: avoid_print
+      // AppLogger.info('STT: Completing listening session');
     }
 
     _isListening = false;
@@ -139,7 +143,7 @@ class FlutterSpeechService implements SpeechService {
       _speech.stop();
     } catch (e) {
       if (kDebugMode) {
-        print('STT: Error stopping speech: $e');
+        // AppLogger.error('STT: Error stopping speech: $e');
       }
     }
 
@@ -149,7 +153,7 @@ class FlutterSpeechService implements SpeechService {
         _onCompleteCallback?.call();
       } catch (e) {
         if (kDebugMode) {
-          print('STT: Error in completion callback: $e');
+          // AppLogger.error('STT: Error in completion callback: $e');
         }
       }
     });
@@ -258,7 +262,7 @@ class FlutterSpeechService implements SpeechService {
 
       _tts.setErrorHandler((message) {
         if (kDebugMode) {
-          print('TTS Error: $message');
+          // AppLogger.error('TTS Error: $message');
         }
         _completeSpeech();
       });
@@ -266,7 +270,7 @@ class FlutterSpeechService implements SpeechService {
       await _tts.speak(_speechChunks[_currentChunkIndex]);
     } catch (e) {
       if (kDebugMode) {
-        print('TTS Speak Error: $e');
+        // AppLogger.error('TTS Speak Error: $e');
       }
       _completeSpeech();
     }
@@ -306,14 +310,12 @@ class FlutterSpeechService implements SpeechService {
         _isPaused = true;
 
         if (kDebugMode) {
-          print(
-            'TTS Paused at chunk $_currentChunkIndex/${_speechChunks.length}',
-          );
+          // AppLogger.debug('TTS Paused at chunk $_currentChunkIndex/${_speechChunks.length}');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        print('TTS Pause Error: $e');
+        // AppLogger.error('TTS Pause Error: $e');
       }
     }
   }
@@ -325,9 +327,7 @@ class FlutterSpeechService implements SpeechService {
         _isPaused = false;
 
         if (kDebugMode) {
-          print(
-            'TTS Resuming from chunk $_currentChunkIndex/${_speechChunks.length}',
-          );
+          // AppLogger.debug('TTS Resuming from chunk $_currentChunkIndex/${_speechChunks.length}');
         }
 
         // Resume from current chunk
@@ -335,7 +335,7 @@ class FlutterSpeechService implements SpeechService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('TTS Resume Error: $e');
+        // AppLogger.error('TTS Resume Error: $e');
       }
       _isPaused = false;
     }

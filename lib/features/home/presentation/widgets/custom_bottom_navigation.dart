@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dot_navigation_bar/dot_navigation_bar.dart';
+import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:mock_interview/core/utils/color_compat.dart';
 import '../../cubit/navigation_cubit.dart';
 import '../../cubit/navigation_state.dart';
@@ -16,46 +16,40 @@ class BottomNavigation extends StatelessWidget {
       builder: (context, state) {
         final currentIndex = context.read<NavigationCubit>().currentIndex;
 
-        return
-        // Container(
-        //   height: 60,
-        //   margin: const EdgeInsets.only(left: 8, right: 8, top: 0),
-        //   decoration: BoxDecoration(
-        //     color: theme.colorScheme.onPrimary,
-        //     borderRadius: BorderRadius.circular(20),
-        //     boxShadow: [
-        //       BoxShadow(
-        //         color: theme.colorScheme.primary.withOpacity(0.1),
-        //         blurRadius: 20,
-        //         offset: const Offset(0, 8),
-        //       ),
-        //     ],
-        //   ),
-        // child:
-        DotNavigationBar(
-          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-          currentIndex: currentIndex,
-          selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: theme.colorScheme.onSurface.withOpacityCompat(
-            0.5,
-          ),
-          // paddingR: EdgeInsets.only(
-          //     bottom: context.height * 0.005, top: context.height * 0.005),
-          marginR: const EdgeInsets.symmetric(horizontal: 1),
-          // margin: EdgeInsets.only(
-          //     left: context.width * 0.05, right: context.width * 0.05),
-          paddingR: const EdgeInsets.symmetric(vertical: 4),
+        final iconList = <IconData>[
+          Icons.home_rounded,
+          Icons.description_rounded,
+          Icons.person_rounded,
+        ];
 
-          borderRadius: 20,
+        return AnimatedBottomNavigationBar(
+          icons: iconList,
+          activeIndex: currentIndex,
           onTap: (index) {
             context.read<NavigationCubit>().changeTab(index);
           },
-          items: [
-            DotNavigationBarItem(icon: const Icon(Icons.home_rounded)),
-            DotNavigationBarItem(icon: const Icon(Icons.description_rounded)),
-            DotNavigationBarItem(icon: const Icon(Icons.person_rounded)),
-          ],
-          // ),
+          // Styling
+          backgroundColor: theme.colorScheme.surface,
+          activeColor: theme.colorScheme.primary,
+          inactiveColor: theme.colorScheme.onSurface.withOpacityCompat(0.5),
+          splashColor: theme.colorScheme.primary.withOpacityCompat(0.2),
+          splashRadius: 24,
+
+          // Fluid animations
+          gapLocation: GapLocation.none,
+          notchSmoothness: NotchSmoothness.smoothEdge,
+          leftCornerRadius: 20,
+          rightCornerRadius: 20,
+
+          // Visual enhancements
+          iconSize: 24,
+          height: 65,
+          elevation: 8,
+          shadow: BoxShadow(
+            color: theme.colorScheme.primary.withOpacityCompat(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
         );
       },
     );
